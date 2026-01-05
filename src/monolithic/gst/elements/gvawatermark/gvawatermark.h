@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2021-2025 Intel Corporation
+ * Copyright (C) 2021-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  ******************************************************************************/
@@ -29,8 +29,9 @@ struct _GstGvaWatermark {
     GstPad *sinkpad;
     GstPad *srcpad;
     gchar *device;
+    gchar *displ_cfg;
     bool obb;
-    bool disp_avgfps;
+    bool displ_avgfps;
 
     bool use_watermarkimpl_only;
 

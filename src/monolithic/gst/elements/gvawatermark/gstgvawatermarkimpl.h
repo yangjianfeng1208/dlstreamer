@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2018-2025 Intel Corporation
+ * Copyright (C) 2018-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  ******************************************************************************/
@@ -40,8 +40,9 @@ struct _GstGvaWatermarkImpl {
     GstBaseTransform base_transform;
     GstVideoInfo info;
     gchar *device;
+    gchar *displ_cfg;
     bool obb;
-    bool disp_avgfps;
+    bool displ_avgfps;
     std::shared_ptr<struct Impl> impl;
     InferenceBackend::MemoryType negotiated_mem_type = InferenceBackend::MemoryType::ANY;
 
@@ -62,6 +63,8 @@ struct _GstGvaWatermarkImplClass {
 };
 
 GType gst_gva_watermark_impl_get_type(void);
+
+enum { PROP_0, PROP_DEVICE, PROP_OBB, PROP_DISPL_AVGFPS, PROP_DISPL_CFG };
 
 G_END_DECLS
 
