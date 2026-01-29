@@ -157,7 +157,7 @@ jobs:
                   Write-Host "::error:: $($res.Name) directory is EMPTY at $($res.Path)"
                   $errorCount++
               } else {
-                  Write-Host "✓ $($res.Name) directory is valid and has files."
+                  Write-Host "[OK] $($res.Name) directory is valid and has files."
               }
           }
           if ($errorCount -gt 0) {
@@ -170,7 +170,7 @@ jobs:
         run: |
           $deps = @{
             "OpenVINO Runtime" = $env:OPENVINO_RUNTIME_DIRECTORY
-            "DLStreamer"       = $env:DLSTREAMER_DIRECTORY
+            "DLStreamer"       = $env:DLS_DLL_TARGET_DIRECTORY
             "GStreamer"        = $env:GSTREAMER_DIRECTORY
             "Build Tools"      = $env:BUILD_TOOLS_DIRECTORY
             "vcpkg"            = $env:VCPKG_DIRECTORY
@@ -209,7 +209,7 @@ jobs:
           $customPaths = @(
             "${env:OPENVINO_RUNTIME_DIRECTORY}\bin\intel64\Release",
             "${env:OPENVINO_RUNTIME_DIRECTORY}\3rdparty\tbb\bin",
-            "${env:DLSTREAMER_DIRECTORY}",
+            "${env:DLS_DLL_TARGET_DIRECTORY}",
             "${env:GSTREAMER_DIRECTORY}\1.0\msvc_x86_64\bin",
             "${env:BUILD_TOOLS_DIRECTORY}\MSBuild\Current\Bin\amd64",
             "${env:BUILD_TOOLS_DIRECTORY}\VC\Tools\MSVC\14.44.35207\bin\HostX86\x86",
