@@ -44,27 +44,27 @@ jobs:
             runner_print_label: ARL
     steps:
       - name: Check out dlstreamer repository
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  #5.0.0
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #5.0.0
         with:
           persist-credentials: false
-          path: ${{ env.DLS_REPO_TARGET_DIRECTORY }}
+          path: dlstreamer-repo
           submodules: false
           fetch-depth: 1
 
       - name: Init submodules
         run: |
-          cd ${{ env.DLS_REPO_TARGET_DIRECTORY }}
+          cd dlstreamer-repo
           git submodule update --init thirdparty/spdlog
           git submodule update --init thirdparty/googletest
 
-      - name: Copy DLStreamer repo
+      - name: Copy DL Streamer repo
         shell: powershell
         run: |
           if (Test-Path ${{ env.DLS_REPO_TARGET_DIRECTORY }}) {
-              Remove-Item -Recurse -Force $target
+              Remove-Item -Recurse -Force ${{ env.DLS_REPO_TARGET_DIRECTORY }}
           }
           New-Item -ItemType Directory -Path ${{ env.DLS_REPO_TARGET_DIRECTORY }} | Out-Null
-          Copy-Item -Path "${{ env.DLS_REPO_TARGET_DIRECTORY }}\*" -Destination ${{ env.DLS_REPO_TARGET_DIRECTORY }} -Recurse -Force
+          Copy-Item -Path "dlstreamer-repo\*" -Destination ${{ env.DLS_REPO_TARGET_DIRECTORY }} -Recurse -Force
 
       # ======================================================== BUILDING PART ========================================================
       - name: 📦 Build DLStreamer DLLs
