@@ -187,7 +187,11 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_CONFIG_H")
 
 find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
-
+if(WIN32)
+    if(NOT TARGET m)
+        add_library(m INTERFACE)
+    endif()
+endif()
 pkg_check_modules(GSTREAMER gstreamer-1.0>=1.16 REQUIRED)
 link_directories(${GSTREAMER_LIBRARY_DIRS})
 
