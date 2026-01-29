@@ -412,6 +412,8 @@ jobs:
           $PathsToClean = @(
               "${{ env.DLS_BUILD_DIRECTORY }}",
               "${{ env.TESTS_RESULTS_DIRECTORY }}",
+              "${{ env.DLS_TARGET_DIRECTORY }}",
+              "${{ env.DLS_REPO_TARGET_DIRECTORY }}"
           )
 
           $PathsToClean | ForEach-Object {
