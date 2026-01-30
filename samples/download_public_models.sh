@@ -701,6 +701,7 @@ core = Core()
 os.rename(f"{model_name}_openvino_model", f"{model_name}_openvino_modelD")
 model = core.read_model(f"{model_name}_openvino_modelD/{model_name}.xml")
 model.reshape([-1, 3, 640, 640])
+os.makedirs(f"{model_name}_openvino_model", exist_ok=True)
 save_model(model, f"{model_name}_openvino_model/{model_name}.xml")
 EOF
 
