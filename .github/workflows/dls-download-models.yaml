@@ -374,25 +374,50 @@ jobs:
       - name: Download OMZ models on Windows (setup venv, dependencies and download)
         id: download-omz-windows
         if: ${{ inputs.models_to_download == 'omz' || inputs.models_to_download == 'all' || github.event_name == 'schedule' }}
-        shell: C:\Progra~1\Git\bin\bash.exe -eo pipefail {0}
+        shell: powershell
         run: |
-          set -eo pipefail
-          export MODELS_PATH=$(cygpath -m "${{ env.MODELS_PATH_WINDOWS }}")
-          workspace_posix=$(cygpath -u "${GITHUB_WORKSPACE}")
-          cd "${workspace_posix}/dlstreamer-repo/samples"
-          venv_path_win="${{ env.WINDOWS_VENV_PATH }}"
-          venv_path=$(cygpath -u "${venv_path_win}")
-          mkdir -p "${venv_path}"
-          python_exe_posix=$(cygpath -u "${PYTHON_EXE_PATH}")
-          "${python_exe_posix}" -m venv "${venv_path}"
-          if [[ -f "${venv_path}/Scripts/activate" ]]; then
-            source "${venv_path}/Scripts/activate"
-          else
-            source "${venv_path}/bin/activate"
-          fi
-          python -m pip install --no-cache-dir --upgrade tensorflow==2.19.1 openvino-dev[onnx]==2024.6.0 torch==2.8.0
-          ./download_omz_models.sh
-          deactivate
+          $ErrorActionPreference = 'Stop'
+          $modelsPath = "${{ env.MODELS_PATH_WINDOWS }}"
+          if (-not (Test-Path $modelsPath)) {
+              New-Item -ItemType Directory -Path $modelsPath | Out-Null
+          }
+          $env:MODELS_PATH = $modelsPath
+
+          $venvPath = "${{ env.WINDOWS_VENV_PATH }}"
+          $pythonExe = "${{ env.PYTHON_EXE_PATH }}"
+          if (-not (Test-Path $pythonExe)) {
+              throw "Python executable not found at $pythonExe"
+          }
+
+          & $pythonExe -m venv $venvPath
+
+          $venvScripts = Join-Path $venvPath 'Scripts'
+          $venvPython = Join-Path $venvScripts 'python.exe'
+          if (-not (Test-Path $venvPython)) {
+              throw "Virtual environment python.exe not found at $venvPython"
+          }
+
+          & $venvPython -m pip install --no-cache-dir --upgrade tensorflow==2.19.1 openvino-dev[onnx]==2024.6.0 torch==2.8.0
+
+          $samplesWindowsDir = Join-Path "${{ github.workspace }}" 'dlstreamer-repo\samples\windows'
+          if (-not (Test-Path $samplesWindowsDir)) {
+              throw "Samples directory not found: $samplesWindowsDir"
+          }
+          $downloadBatch = Join-Path $samplesWindowsDir 'download_omz_models.bat'
+          if (-not (Test-Path $downloadBatch)) {
+              throw "Batch file not found: $downloadBatch"
+          }
+
+          $activateBat = Join-Path $venvScripts 'activate.bat'
+          if (-not (Test-Path $activateBat)) {
+              throw "Activation script not found: $activateBat"
+          }
+
+          $cmd = 'call "{0}" && cd /d "{1}" && call "{2}"' -f $activateBat, $samplesWindowsDir, $downloadBatch
+          cmd.exe /c $cmd
+          if ($LASTEXITCODE -ne 0) {
+              throw "download_omz_models.bat failed with exit code $LASTEXITCODE"
+          }
 
       - name: Verify OMZ models downloading on Windows
         id: verify-omz-windows

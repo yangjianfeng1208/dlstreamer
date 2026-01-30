@@ -14,9 +14,9 @@ if [ -z "$MODELS_PATH" ]; then
   exit 1
 fi
 
-PYTHON_CMD=python3
+PYTHON_CMD=python
 if ! command -v "$PYTHON_CMD" >/dev/null 2>&1; then
-  PYTHON_CMD=python
+  PYTHON_CMD=python3
 fi
 
 echo Downloading models to folder "$MODELS_PATH"
