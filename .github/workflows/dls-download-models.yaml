@@ -231,7 +231,6 @@ jobs:
     name: Update on Windows runners
     permissions:
       contents: read
-    if: ${{ inputs.models_to_download != 'omz' || github.event_name == 'schedule' }}
     runs-on:
       - self-hosted
       - dlstreamer
@@ -358,3 +357,72 @@ jobs:
         run: |
           Remove-Item -Recurse -Force "${{ github.workspace }}\dlstreamer-repo" -ErrorAction SilentlyContinue
           Remove-Item -Recurse -Force "$HOME\.virtualenvs" -ErrorAction SilentlyContinue
+
+      - name: Download OMZ models on Windows (setup venv, dependencies and download)
+        id: download-omz-windows
+        if: ${{ inputs.models_to_download == 'omz' || inputs.models_to_download == 'all' || github.event_name == 'schedule' }}
+        shell: C:\Progra~1\Git\bin\bash.exe -eo pipefail {0}
+        run: |
+          set -eo pipefail
+          export MODELS_PATH=$(cygpath -m "${{ env.MODELS_PATH_WINDOWS }}")
+          workspace_posix=$(cygpath -u "${GITHUB_WORKSPACE}")
+          cd "${workspace_posix}/dlstreamer-repo/samples"
+          mkdir -p .virtualenvs/dlstreamer
+          python3 -m venv .virtualenvs/dlstreamer
+          source .virtualenvs/dlstreamer/bin/activate
+          pip3 install --no-cache-dir --upgrade tensorflow==2.19.1 openvino-dev[onnx]==2024.6.0 torch==2.8.0
+          ./download_omz_models.sh
+          deactivate
+
+      - name: Verify OMZ models downloading on Windows
+        id: verify-omz-windows
+        if: >
+          steps.download-omz-windows.outcome == 'success' &&
+          (inputs.models_to_download == 'omz' || inputs.models_to_download == 'all' || github.event_name == 'schedule')
+        shell: powershell
+        run: |
+          $intelDir = Join-Path "${{ env.MODELS_PATH_WINDOWS }}" "intel"
+          if (-not (Test-Path $intelDir)) {
+              Write-Error "OMZ models not downloaded correctly - directory not created ❌"
+          }
+          $files = Get-ChildItem -Path $intelDir -Recurse -File -ErrorAction SilentlyContinue
+          if (-not $files) {
+              Write-Error "OMZ models not downloaded correctly - directory is empty ❌"
+          }
+          $sizeBytes = ($files | Measure-Object -Property Length -Sum).Sum
+          $sizeMB = if ($sizeBytes) { [math]::Round($sizeBytes / 1MB, 2) } else { 0 }
+          "Windows OMZ models directory size: $sizeMB MB" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          if ($sizeMB -lt ${{ env.MODELS_DIR_MIN_SIZE_MB }}) {
+              Write-Error "OMZ models not downloaded correctly on Windows - directory too small ❌"
+          } else {
+              "OMZ models downloaded on Windows ✅" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          }
+
+      - name: Manage OMZ models directories after success (Windows)
+        if: ${{ steps.verify-omz-windows.outcome == 'success' && steps.download-omz-windows.outcome == 'success' }}
+        shell: powershell
+        run: |
+          $intelOldOld = Join-Path "${{ env.MODELS_PATH_WINDOWS }}" "intel_old_old"
+          if (Test-Path $intelOldOld) {
+              Remove-Item -Recurse -Force $intelOldOld
+          }
+          "New Windows OMZ models set up ✅" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+
+      - name: Restore OMZ models directories after fail (Windows)
+        if: ${{ always() && steps.download-omz-windows.outcome != 'skipped' && !(steps.verify-omz-windows.outcome == 'success' && steps.download-omz-windows.outcome == 'success') }}
+        shell: powershell
+        run: |
+          $modelsPath = "${{ env.MODELS_PATH_WINDOWS }}"
+          $intel = Join-Path $modelsPath "intel"
+          $intelOld = Join-Path $modelsPath "intel_old"
+          $intelOldOld = Join-Path $modelsPath "intel_old_old"
+          if (Test-Path $intel) {
+              Remove-Item -Recurse -Force $intel
+          }
+          if (Test-Path $intelOld) {
+              Rename-Item -Path $intelOld -NewName "intel"
+          }
+          if (Test-Path $intelOldOld) {
+              Rename-Item -Path $intelOldOld -NewName "intel_old"
+          }
+          "Old Windows OMZ models restored" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
