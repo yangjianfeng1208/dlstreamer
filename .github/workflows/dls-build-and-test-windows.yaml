@@ -70,7 +70,7 @@ jobs:
         shell: powershell
         run: |
           cd ${{ env.DLS_REPO_TARGET_DIRECTORY }}
-          & ./scripts/build_dlstreamer_dlls.ps1
+          & ./scripts/build_dlstreamer_dlls.ps1 -useInternalProxy
 
       - name: Copy DLLs
         shell: powershell

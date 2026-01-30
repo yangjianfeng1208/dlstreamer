@@ -11,7 +11,17 @@ QUANTIZE=${2:-""} # Supported values listed in SUPPORTED_QUANTIZATION_DATASETS b
 # Save the directory where the script was launched from
 LAUNCH_DIR="$PWD"
 
-. /etc/os-release
+if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    echo "Running on Linux: $PRETTY_NAME"
+elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
+    NAME="Windows"
+    ID="windows"
+    PRETTY_NAME="Windows Git Bash"
+    echo "Running on $PRETTY_NAME"
+else
+    echo "Unknown OS type: $OSTYPE"
+fi
 
 # Changing the config dir for the duration of the script to prevent potential conflics with
 # previous installations of ultralytics' tools. Quantization datasets could install
@@ -275,6 +285,34 @@ array_contains() {
     return 1
 }
 
+# Activate a Python virtual environment, supporting both POSIX bin and Windows Scripts paths
+activate_venv() {
+  local venv_dir="$1"
+  local activate_script="$venv_dir/bin/activate"
+
+  if [ ! -f "$activate_script" ]; then
+    activate_script="$venv_dir/Scripts/activate"
+  fi
+
+  if [ ! -f "$activate_script" ]; then
+    echo "Virtual environment activation script not found in $venv_dir"
+    exit 1
+  fi
+
+  # shellcheck disable=SC1090
+  source "$activate_script"
+}
+
+# Run pip operations through python -m pip to avoid Windows shims warnings
+pip() {
+  local python_cmd="python3"
+  if ! command -v "$python_cmd" >/dev/null 2>&1; then
+    python_cmd="python"
+  fi
+
+  "$python_cmd" -m pip "$@"
+}
+
 # Trap errors and call handle_error
 trap 'handle_error "- line $LINENO"' ERR
 
@@ -285,7 +323,7 @@ validate_models "$MODEL"
 mapfile -t MODELS_TO_PROCESS < <(prepare_models_list "$MODEL")
 echo "Models to process: ${MODELS_TO_PROCESS[*]}"
 
-if ! [[ "${!SUPPORTED_QUANTIZATION_DATASETS[*]}" =~ $QUANTIZE ]]; then
+if [[ -n "$QUANTIZE" && -z "${SUPPORTED_QUANTIZATION_DATASETS[$QUANTIZE]+x}" ]]; then
   echo "Unsupported quantization dataset: $QUANTIZE" >&2
   exit 1
 fi
@@ -321,7 +359,7 @@ fi
 
 # Activate the virtual environment
 echo "Activating virtual environment in $VENV_DIR_QUANT..."
-source "$VENV_DIR_QUANT/bin/activate"
+activate_venv "$VENV_DIR_QUANT"
 
 # Upgrade pip in the virtual environment
 pip install --no-cache-dir --upgrade pip
@@ -351,7 +389,7 @@ fi
 
 # Activate the virtual environment
 echo "Activating virtual environment in $VENV_DIR..."
-source "$VENV_DIR/bin/activate"
+activate_venv "$VENV_DIR"
 
 # Upgrade pip in the virtual environment
 pip install --no-cache-dir --upgrade pip
@@ -402,7 +440,7 @@ quantize_yolo_model() {
     echo "Quantizing: ${MODEL_DIR}"
     mkdir -p "$MODEL_DIR"
 
-    source "$VENV_DIR_QUANT/bin/activate"
+    activate_venv "$VENV_DIR_QUANT"
     cd "$MODELS_PATH"
     python3 - <<EOF "$MODEL_NAME" "$DATASET_MANIFEST"
 import openvino as ov
@@ -487,7 +525,7 @@ quantized_model.set_rt_info(ov.get_version(), "Runtime_version")
 ov.save_model(quantized_model, "./public/" + model_name + "/INT8/" + model_name + ".xml", compress_to_fp16=False)
 EOF
 
-  source "$VENV_DIR/bin/activate"
+  activate_venv "$VENV_DIR"
   YOLO_CONFIG_DIR=$DOWNLOAD_CONFIG_DIR
   else
     echo_color "\nModel already quantized: $MODEL_DIR.\n" "yellow"
@@ -504,7 +542,7 @@ if array_contains "yolox-tiny" "${MODELS_TO_PROCESS[@]}" || array_contains "yolo
   if [[ ! -f "$DST_FILE1" || ! -f "$DST_FILE2" ]]; then
     cd "$MODELS_PATH"
     echo "Downloading and converting: ${MODEL_DIR}"
-    source "$VENV_DIR/bin/activate"
+    activate_venv "$VENV_DIR"
     omz_downloader --name "$MODEL_NAME"
     omz_converter --name "$MODEL_NAME"
     cd "$MODEL_DIR"
@@ -528,7 +566,7 @@ if array_contains "yolox_s" "${MODELS_TO_PROCESS[@]}" || array_contains "yolo_al
     mkdir -p "$MODEL_DIR/FP32"
     cd "$MODEL_DIR"
     curl -O -L https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0/yolox_s.onnx
-    source "$VENV_DIR/bin/activate"
+    activate_venv "$VENV_DIR"
     ovc yolox_s.onnx --compress_to_fp16=True
     mv yolox_s.xml "$MODEL_DIR/FP16"
     mv yolox_s.bin "$MODEL_DIR/FP16"
@@ -553,7 +591,7 @@ export_yolov5_model() {
     echo "Downloading and converting: ${model_path}"
     mkdir -p "$model_path"
     cd "$model_path"
-    source "$VENV_DIR/bin/activate"
+    activate_venv "$VENV_DIR"
 
     python3 - <<EOF
 import os
@@ -641,7 +679,7 @@ for MODEL_NAME in "${YOLOv5_MODELS[@]}"; do
       cp -r "$REPO_DIR" yolov5
       cd yolov5
       curl -L -O "https://github.com/ultralytics/yolov5/releases/download/v7.0/${MODEL_NAME}.pt"
-      source "$VENV_DIR/bin/activate"
+      activate_venv "$VENV_DIR"
 
       python3 export.py --weights "${MODEL_NAME}.pt" --include openvino --img-size 640 --dynamic
       python3 - <<EOF "${MODEL_NAME}"
@@ -701,7 +739,7 @@ if array_contains "yolov7" "${MODELS_TO_PROCESS[@]}" || array_contains "yolo_all
   DST_FILE2="$MODEL_DIR/FP32/$MODEL_NAME.xml"
 
   if [[ ! -f "$DST_FILE1" || ! -f "$DST_FILE2" ]]; then
-    source "$VENV_DIR/bin/activate"
+    activate_venv "$VENV_DIR"
     pip install --no-cache-dir onnx
     pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1  || handle_error $LINENO
     mkdir -p "$MODEL_DIR"
@@ -739,11 +777,13 @@ export_yolo_model() {
     echo "Downloading and converting: ${MODEL_DIR}"
     mkdir -p "$MODEL_DIR"
     cd "$MODEL_DIR"
-    source "$VENV_DIR/bin/activate"
+    activate_venv "$VENV_DIR"
 
     python3 - <<EOF "$MODEL_NAME" "$MODEL_TYPE"
 from ultralytics import YOLO
 import openvino, sys, shutil, os
+from pathlib import Path
+import gc
 
 model_name = sys.argv[1]
 model_type = sys.argv[2]
@@ -751,10 +791,10 @@ weights = model_name + '.pt'
 
 model = YOLO(weights)
 model.info()
-converted_path = model.export(format='openvino')
-converted_model = converted_path + '/' + model_name + '.xml'
+converted_path = Path(model.export(format='openvino'))
+converted_model = converted_path / f"{model_name}.xml"
 core = openvino.Core()
-ov_model = core.read_model(model=converted_model)
+ov_model = core.read_model(model=str(converted_model))
 
 if model_type in ["yolo_v8_seg", "yolo_v11_seg"]:
     ov_model.output(0).set_names({"boxes"})
@@ -762,8 +802,15 @@ if model_type in ["yolo_v8_seg", "yolo_v11_seg"]:
 
 ov_model.set_rt_info(model_type, ['model_info', 'model_type'])
 
-openvino.save_model(ov_model, './FP32/' + model_name + '.xml', compress_to_fp16=False)
-openvino.save_model(ov_model, './FP16/' + model_name + '.xml', compress_to_fp16=True)
+fp32_dir = Path('FP32')
+fp16_dir = Path('FP16')
+fp32_dir.mkdir(exist_ok=True)
+fp16_dir.mkdir(exist_ok=True)
+openvino.save_model(ov_model, str(fp32_dir / f"{model_name}.xml"), compress_to_fp16=False)
+openvino.save_model(ov_model, str(fp16_dir / f"{model_name}.xml"), compress_to_fp16=True)
+del ov_model
+del core
+gc.collect()
 shutil.rmtree(converted_path)
 os.remove(f"{model_name}.pt")
 EOF
@@ -889,7 +936,7 @@ if array_contains "centerface" "${MODELS_TO_PROCESS[@]}" || array_contains "all"
     cd "$MODEL_DIR"
     git clone https://github.com/Star-Clouds/CenterFace.git
     cd CenterFace/models/onnx
-    source "$VENV_DIR/bin/activate"
+    activate_venv "$VENV_DIR"
     ovc centerface.onnx --input "[1,3,768,1280]"
     mv centerface.xml "$MODEL_DIR"
     mv centerface.bin "$MODEL_DIR"
@@ -935,7 +982,7 @@ if array_contains "hsemotion" "${MODELS_TO_PROCESS[@]}" || array_contains "all" 
     cd "$MODEL_DIR"
     git clone https://github.com/av-savchenko/face-emotion-recognition.git
     cd face-emotion-recognition/models/affectnet_emotions/onnx
-    source "$VENV_DIR/bin/activate"
+    activate_venv "$VENV_DIR"
 
     ovc enet_b0_8_va_mtl.onnx --input "[16,3,224,224]"
     mkdir "$MODEL_DIR/FP16/"
@@ -981,7 +1028,7 @@ for MODEL_NAME in "${CLIP_MODELS[@]}"; do
       IMAGE_PATH=car.png
       curl -L -o $IMAGE_PATH $IMAGE_URL
       echo "Image downloaded to $IMAGE_PATH"
-      source "$VENV_DIR/bin/activate"
+      activate_venv "$VENV_DIR"
       python3 - <<EOF "$MODEL_NAME" "$IMAGE_PATH"
 from transformers import CLIPProcessor, CLIPVisionModel
 import PIL
@@ -1038,7 +1085,7 @@ if array_contains "deeplabv3" "${MODELS_TO_PROCESS[@]}" || array_contains "all" 
   if [[ ! -f "$DST_FILE1" || ! -f "$DST_FILE2" ]]; then
     cd "$MODELS_PATH"
     echo "Downloading and converting: ${MODEL_DIR}"
-    source "$VENV_DIR/bin/activate"
+    activate_venv "$VENV_DIR"
     omz_downloader --name "$MODEL_NAME"
     omz_converter --name "$MODEL_NAME"
     cd "$MODEL_DIR"
@@ -1170,7 +1217,7 @@ if array_contains "mars-small128" "${MODELS_TO_PROCESS[@]}" || array_contains "a
     cd "$MODEL_DIR"
 
     # Activate virtual environment
-    source "$VENV_DIR/bin/activate"
+    activate_venv "$VENV_DIR"
 
     # Install dependencies for converter script
     pip install --no-cache-dir torch openvino nncf gdown || handle_error $LINENO
