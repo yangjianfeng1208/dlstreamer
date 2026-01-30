@@ -427,21 +427,20 @@ jobs:
         shell: powershell
         run: |
           $intelDir = Join-Path "${{ env.MODELS_PATH_WINDOWS }}" "intel"
-            if (-not (Test-Path $intelDir)) {
-              Write-Error -Message "OMZ models not downloaded correctly - directory not created ❌"
-            }
-            $files = Get-ChildItem -Path $intelDir -Recurse -File -ErrorAction SilentlyContinue
-            if (-not $files) {
-              Write-Error -Message "OMZ models not downloaded correctly - directory is empty ❌"
-            }
+          if (-not (Test-Path $intelDir)) {
+              throw "OMZ models not downloaded correctly - directory not created ❌"
+          }
+          $files = Get-ChildItem -Path $intelDir -Recurse -File -ErrorAction SilentlyContinue
+          if (-not $files) {
+              throw "OMZ models not downloaded correctly - directory is empty ❌"
+          }
           $sizeBytes = ($files | Measure-Object -Property Length -Sum).Sum
           $sizeMB = if ($sizeBytes) { [math]::Round($sizeBytes / 1MB, 2) } else { 0 }
           "Windows OMZ models directory size: $sizeMB MB" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-            if ($sizeMB -lt ${{ env.MODELS_DIR_MIN_SIZE_MB }}) {
-              Write-Error -Message "OMZ models not downloaded correctly on Windows - directory too small ❌"
-          } else {
-              "OMZ models downloaded on Windows ✅" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          if ($sizeMB -lt ${{ env.MODELS_DIR_MIN_SIZE_MB }}) {
+              throw "OMZ models not downloaded correctly on Windows - directory too small ❌"
           }
+          "OMZ models downloaded on Windows ✅" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
 
       - name: Manage OMZ models directories after success (Windows)
         if: ${{ steps.verify-omz-windows.outcome == 'success' && steps.download-omz-windows.outcome == 'success' }}
