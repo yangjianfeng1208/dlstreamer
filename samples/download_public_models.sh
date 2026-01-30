@@ -498,6 +498,7 @@ validator.data = check_det_dataset(dataset_file)
 validator.stride = 32
 validator.is_coco = True
 validator.class_map = coco80_to_coco91_class
+validator.args.workers = 0  # Force single-worker dataloader to avoid Windows spawn issues
 
 data_loader = validator.get_dataloader(validator.data["path"], 1)
 
