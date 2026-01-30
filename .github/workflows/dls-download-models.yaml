@@ -237,8 +237,6 @@ jobs:
       - dlstreamer
       - ARL
       - windows
-    env:
-      MODELS_PATH: ${{ env.MODELS_PATH_WINDOWS }}
     steps:
       - name: Get script
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # 5.0.0
@@ -257,7 +255,7 @@ jobs:
             echo "specific_model_name input is required when running on Windows" >&2
             exit 1
           fi
-          export MODELS_PATH=$(cygpath -m "${{ env.MODELS_PATH }}")
+          export MODELS_PATH=$(cygpath -m "${{ env.MODELS_PATH_WINDOWS }}")
           mkdir -p "${MODELS_PATH}/public"
           target_dir="${MODELS_PATH}/public/${SPECIFIC_MODEL_NAME}"
           rm -rf "${target_dir}"
@@ -270,7 +268,7 @@ jobs:
         if: ${{ inputs.models_to_download == 'public' || inputs.models_to_download == 'all' || github.event_name == 'schedule' }}
         shell: powershell
         run: |
-          $modelsPath = "${{ env.MODELS_PATH }}"
+          $modelsPath = "${{ env.MODELS_PATH_WINDOWS }}"
           if (-not (Test-Path $modelsPath)) {
               New-Item -ItemType Directory -Path $modelsPath | Out-Null
           }
@@ -296,7 +294,7 @@ jobs:
         shell: C:\Progra~1\Git\bin\bash.exe -eo pipefail {0}
         run: |
           set -eo pipefail
-          export MODELS_PATH=$(cygpath -m "${{ env.MODELS_PATH }}")
+          export MODELS_PATH=$(cygpath -m "${{ env.MODELS_PATH_WINDOWS }}")
           workspace_posix=$(cygpath -u "${GITHUB_WORKSPACE}")
           cd "${workspace_posix}/dlstreamer-repo/samples"
           ./download_public_models.sh all coco128
@@ -308,7 +306,7 @@ jobs:
           (inputs.models_to_download == 'public' || inputs.models_to_download == 'all' || github.event_name == 'schedule')
         shell: powershell
         run: |
-          $publicDir = Join-Path "${{ env.MODELS_PATH }}" "public"
+          $publicDir = Join-Path "${{ env.MODELS_PATH_WINDOWS }}" "public"
           if (-not (Test-Path $publicDir)) {
               Write-Error "Public models not downloaded correctly - directory not created ❌"
           }
@@ -329,7 +327,7 @@ jobs:
         if: ${{ steps.verify-public-windows.outcome == 'success' && steps.download-public-windows.outcome == 'success' }}
         shell: powershell
         run: |
-          $publicOldOld = Join-Path "${{ env.MODELS_PATH }}" "public_old_old"
+          $publicOldOld = Join-Path "${{ env.MODELS_PATH_WINDOWS }}" "public_old_old"
           if (Test-Path $publicOldOld) {
               Remove-Item -Recurse -Force $publicOldOld
           }
@@ -339,7 +337,7 @@ jobs:
         if: ${{ always() && steps.download-public-windows.outcome != 'skipped' && !(steps.verify-public-windows.outcome == 'success' && steps.download-public-windows.outcome == 'success') }}
         shell: powershell
         run: |
-          $modelsPath = "${{ env.MODELS_PATH }}"
+          $modelsPath = "${{ env.MODELS_PATH_WINDOWS }}"
           $public = Join-Path $modelsPath "public"
           $publicOld = Join-Path $modelsPath "public_old"
           $publicOldOld = Join-Path $modelsPath "public_old_old"
