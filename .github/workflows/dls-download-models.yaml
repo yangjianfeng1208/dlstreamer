@@ -248,7 +248,7 @@ jobs:
 
       - name: Download specific public model on Windows
         if: ${{ inputs.models_to_download == 'specific_model' && inputs.specific_model_path == 'public' }}
-        shell: bash
+        shell: C:\Progra~1\Git\bin\bash.exe -eo pipefail {0}
         env:
           SPECIFIC_MODEL_NAME: ${{ inputs.specific_model_name }}
         run: |
