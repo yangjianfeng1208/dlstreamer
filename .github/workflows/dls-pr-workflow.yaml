@@ -1,19 +1,6 @@
 name: "[DLS] PR workflow"
 run-name: "[DLS] PR  workflow (by @${{ github.actor }} via ${{ github.event_name }})"
 on:
-  push:
-    branches:
-      - 'main'
-    paths:
-      - 'cmake/**'
-      - 'docker/**'
-      - 'include/**'
-      - 'python/**'
-      - 'samples/**'
-      - 'scripts/**'
-      - 'src/**'
-      - 'tests/**'
-      - 'thirdparty/**'
   pull_request:
     paths:
       - 'cmake/**'
