@@ -293,7 +293,7 @@ jobs:
       - name: Download public models on Windows
         id: download-public-windows
         if: ${{ inputs.models_to_download == 'public' || inputs.models_to_download == 'all' || github.event_name == 'schedule' }}
-        shell: bash
+        shell: C:\Progra~1\Git\bin\bash.exe -eo pipefail {0}
         run: |
           set -eo pipefail
           export MODELS_PATH=$(cygpath -m "${{ env.MODELS_PATH }}")
