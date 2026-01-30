@@ -118,6 +118,7 @@ jobs:
           path: ${{ github.workspace }}/dls_test_repo
           ref: ${{ inputs.test-repo-branch }}
           persist-credentials: false
+          clean: false
 
       - name: Install Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # 5.0.0
@@ -411,13 +412,13 @@ jobs:
           $PathsToClean = @(
               "${{ env.DLS_BUILD_DIRECTORY }}",
               "${{ env.TESTS_RESULTS_DIRECTORY }}",
-              "${{ env.DLS_DLL_TARGET_DIRECTORY }}",
-              "${{ env.DLS_REPO_TARGET_DIRECTORY }}"
+              "${{ env.DLS_DLL_TARGET_DIRECTORY }}"
           )
-
           $PathsToClean | ForEach-Object {
               if (Test-Path $_) {
                   Write-Host "Cleaning up: $_"
                   Remove-Item -Recurse -Force $_ -ErrorAction SilentlyContinue
               }
           }
+
+        # "${{ env.DLS_REPO_TARGET_DIRECTORY }}"
