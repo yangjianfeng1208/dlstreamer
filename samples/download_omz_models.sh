@@ -14,12 +14,17 @@ if [ -z "$MODELS_PATH" ]; then
   exit 1
 fi
 
+PYTHON_CMD=python3
+if ! command -v "$PYTHON_CMD" >/dev/null 2>&1; then
+  PYTHON_CMD=python
+fi
+
 echo Downloading models to folder "$MODELS_PATH"
 
-if ! python3 -m pip show -qq openvino-dev || ! python3 -m pip show -qq tensorflow; then
+if ! "$PYTHON_CMD" -m pip show -qq openvino-dev || ! "$PYTHON_CMD" -m pip show -qq tensorflow; then
   echo "This script requires the Open Model Zoo Python modules and TensorFlow."
   echo "Please install them using the following command:"
-  echo "python3 -m pip install tensorflow openvino-dev[onnx]"
+  echo "${PYTHON_CMD} -m pip install tensorflow openvino-dev[onnx]"
   exit 1
 fi
 
