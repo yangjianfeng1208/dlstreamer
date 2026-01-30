@@ -442,7 +442,8 @@ quantize_yolo_model() {
 
     activate_venv "$VENV_DIR_QUANT"
     cd "$MODELS_PATH"
-    python3 - <<EOF "$MODEL_NAME" "$DATASET_MANIFEST"
+    tmp_quant_script=$(mktemp "${TMPDIR:-/tmp}/quantize-yolo.XXXXXX.py")
+    cat >"$tmp_quant_script" <<'PY'
 import openvino as ov
 import nncf
 import torch
@@ -523,7 +524,15 @@ print_statistics(q_stats, total_images, total_objects)
 
 quantized_model.set_rt_info(ov.get_version(), "Runtime_version")
 ov.save_model(quantized_model, "./public/" + model_name + "/INT8/" + model_name + ".xml", compress_to_fp16=False)
-EOF
+PY
+
+    python_script_path="$tmp_quant_script"
+    if command -v cygpath >/dev/null 2>&1; then
+      python_script_path=$(cygpath -w "$tmp_quant_script")
+    fi
+
+    python3 "$python_script_path" "$MODEL_NAME" "$DATASET_MANIFEST"
+    rm -f "$tmp_quant_script"
 
   activate_venv "$VENV_DIR"
   YOLO_CONFIG_DIR=$DOWNLOAD_CONFIG_DIR
