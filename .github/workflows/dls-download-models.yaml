@@ -326,21 +326,20 @@ jobs:
         shell: powershell
         run: |
           $publicDir = Join-Path "${{ env.MODELS_PATH_WINDOWS }}" "public"
-          if (-not (Test-Path $publicDir)) {
-              Write-Error "Public models not downloaded correctly - directory not created ❌"
-          }
-          $files = Get-ChildItem -Path $publicDir -Recurse -File -ErrorAction SilentlyContinue
-          if (-not $files) {
-              Write-Error "Public models not downloaded correctly - directory is empty ❌"
-          }
+            if (-not (Test-Path $publicDir)) {
+              throw "Public models not downloaded correctly - directory not created"
+            }
+            $files = Get-ChildItem -Path $publicDir -Recurse -File -ErrorAction SilentlyContinue
+            if (-not $files) {
+              throw "Public models not downloaded correctly - directory is empty"
+            }
           $sizeBytes = ($files | Measure-Object -Property Length -Sum).Sum
           $sizeMB = if ($sizeBytes) { [math]::Round($sizeBytes / 1MB, 2) } else { 0 }
           "Windows public models directory size: $sizeMB MB" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-          if ($sizeMB -lt ${{ env.MODELS_DIR_MIN_SIZE_MB }}) {
-              Write-Error "Public models not downloaded correctly on Windows - directory too small ❌"
-          } else {
-              "Public models downloaded on Windows ✅" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-          }
+            if ($sizeMB -lt ${{ env.MODELS_DIR_MIN_SIZE_MB }}) {
+              throw "Public models not downloaded correctly on Windows - directory too small"
+            }
+            "Public models downloaded on Windows" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
 
       - name: Manage public models directories after success (Windows)
         if: ${{ steps.verify-public-windows.outcome == 'success' && steps.download-public-windows.outcome == 'success' }}
@@ -350,7 +349,7 @@ jobs:
           if (Test-Path $publicOldOld) {
               Remove-Item -Recurse -Force $publicOldOld
           }
-          "New Windows public models set up ✅" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          "New Windows public models set up" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
 
       - name: Restore public models directories after fail (Windows)
         if: ${{ always() && steps.download-public-windows.outcome != 'skipped' && !(steps.verify-public-windows.outcome == 'success' && steps.download-public-windows.outcome == 'success') }}
@@ -440,7 +439,7 @@ jobs:
           if ($sizeMB -lt ${{ env.MODELS_DIR_MIN_SIZE_MB }}) {
               throw "OMZ models not downloaded correctly on Windows - directory too small ❌"
           }
-          "OMZ models downloaded on Windows ✅" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          "OMZ models downloaded on Windows" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
 
       - name: Manage OMZ models directories after success (Windows)
         if: ${{ steps.verify-omz-windows.outcome == 'success' && steps.download-omz-windows.outcome == 'success' }}
@@ -450,7 +449,7 @@ jobs:
           if (Test-Path $intelOldOld) {
               Remove-Item -Recurse -Force $intelOldOld
           }
-          "New Windows OMZ models set up ✅" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          "New Windows OMZ models set up" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
 
       - name: Restore OMZ models directories after fail (Windows)
         if: ${{ always() && steps.download-omz-windows.outcome != 'skipped' && !(steps.verify-omz-windows.outcome == 'success' && steps.download-omz-windows.outcome == 'success') }}
