@@ -956,7 +956,7 @@ if array_contains "centerface" "${MODELS_TO_PROCESS[@]}" || array_contains "all"
     mkdir -p "$MODEL_DIR/FP32" "$MODEL_DIR/FP16"
     python3 - <<EOF
 import openvino
-import sys, os
+import sys, os, gc
 
 core = openvino.Core()
 ov_model = core.read_model(model='centerface.xml')
@@ -974,6 +974,9 @@ print(ov_model)
 
 openvino.save_model(ov_model, './FP32/' + 'centerface.xml', compress_to_fp16=False)
 openvino.save_model(ov_model, './FP16/' + 'centerface.xml', compress_to_fp16=True)
+del ov_model
+del core
+gc.collect()
 os.remove('centerface.xml')
 os.remove('centerface.bin')
 EOF
