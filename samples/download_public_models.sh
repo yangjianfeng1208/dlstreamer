@@ -158,6 +158,23 @@ handle_error() {
     exit 1
 }
 
+# Download a single file from Hugging Face with a fallback that disables
+# certificate verification when corporate proxies strip certificates.
+download_hf_file() {
+  local repo="$1"
+  local filename="$2"
+  local destination="$3"
+  local url="https://huggingface.co/${repo}/resolve/main/${filename}"
+  local curl_args=(-L --retry 5 --retry-delay 5 --fail)
+
+  if curl "${curl_args[@]}" -o "$destination" "$url"; then
+    return 0
+  fi
+
+  echo_color "Secure download failed for ${filename}; retrying without certificate verification." "yellow"
+  curl "${curl_args[@]}" --insecure -o "$destination" "$url"
+}
+
 # Function to display help message
 show_help() {
     cat << EOF
@@ -1046,9 +1063,19 @@ for MODEL_NAME in "${CLIP_MODELS[@]}"; do
       IMAGE_PATH=car.png
       curl -L -o $IMAGE_PATH $IMAGE_URL
       echo "Image downloaded to $IMAGE_PATH"
+      CLIP_CACHE_DIR="$MODEL_DIR/hf-cache"
+      mkdir -p "$CLIP_CACHE_DIR"
+      CLIP_REPO="openai/$MODEL_NAME"
+      download_hf_file "$CLIP_REPO" "config.json" "$CLIP_CACHE_DIR/config.json" || handle_error $LINENO
+      download_hf_file "$CLIP_REPO" "preprocessor_config.json" "$CLIP_CACHE_DIR/preprocessor_config.json" || handle_error $LINENO
+      download_hf_file "$CLIP_REPO" "pytorch_model.bin" "$CLIP_CACHE_DIR/pytorch_model.bin" || handle_error $LINENO
+      clip_cache_path="$CLIP_CACHE_DIR"
+      if command -v cygpath >/dev/null 2>&1; then
+        clip_cache_path=$(cygpath -w "$CLIP_CACHE_DIR")
+      fi
       activate_venv "$VENV_DIR"
-      python3 - <<EOF "$MODEL_NAME" "$IMAGE_PATH"
-from transformers import CLIPProcessor, CLIPVisionModel
+      python3 - <<EOF "$MODEL_NAME" "$IMAGE_PATH" "$clip_cache_path"
+from transformers import CLIPImageProcessor, CLIPVisionModel
 import PIL
 import openvino as ov
 from openvino.runtime import PartialShape, Type
@@ -1057,12 +1084,13 @@ import os
 
 MODEL=sys.argv[1]
 img_path = sys.argv[2]
+model_cache = sys.argv[3]
 
 img = PIL.Image.open(img_path)
-vision_model = CLIPVisionModel.from_pretrained('openai/'+MODEL)
+vision_model = CLIPVisionModel.from_pretrained(model_cache, local_files_only=True)
 vision_model.eval()
-processor = CLIPProcessor.from_pretrained('openai/'+MODEL)
-batch = processor.image_processor(images=img, return_tensors='pt')["pixel_values"]
+processor = CLIPImageProcessor.from_pretrained(model_cache, local_files_only=True)
+batch = processor(images=img, return_tensors='pt')["pixel_values"]
 
 print("Conversion starting...")
 ov_model = ov.convert_model(vision_model, example_input=batch)
