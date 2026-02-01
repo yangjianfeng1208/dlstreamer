@@ -1006,8 +1006,8 @@ if array_contains "hsemotion" "${MODELS_TO_PROCESS[@]}" || array_contains "all" 
     cd ../../../..
     rm -rf face-emotion-recognition
     python3 - <<EOF
-  import openvino
-  import sys, os, gc
+import openvino
+import sys, os, gc
 
 core = openvino.Core()
 ov_model = core.read_model(model='hsemotion.xml')
