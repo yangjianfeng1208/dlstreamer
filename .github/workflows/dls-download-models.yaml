@@ -351,24 +351,24 @@ jobs:
       #     }
       #     "New Windows public models set up" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
 
-      - name: Restore public models directories after fail (Windows)
-        if: ${{ always() && steps.download-public-windows.outcome != 'skipped' && !(steps.verify-public-windows.outcome == 'success' && steps.download-public-windows.outcome == 'success') }}
-        shell: powershell
-        run: |
-          $modelsPath = "${{ env.MODELS_PATH_WINDOWS }}"
-          $public = Join-Path $modelsPath "public"
-          $publicOld = Join-Path $modelsPath "public_old"
-          $publicOldOld = Join-Path $modelsPath "public_old_old"
-          if (Test-Path $public) {
-              Remove-Item -Recurse -Force $public
-          }
-          if (Test-Path $publicOld) {
-              Rename-Item -Path $publicOld -NewName "public"
-          }
-          if (Test-Path $publicOldOld) {
-              Rename-Item -Path $publicOldOld -NewName "public_old"
-          }
-          "Old Windows public models restored" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+      # - name: Restore public models directories after fail (Windows)
+      #   if: ${{ always() && steps.download-public-windows.outcome != 'skipped' && !(steps.verify-public-windows.outcome == 'success' && steps.download-public-windows.outcome == 'success') }}
+      #   shell: powershell
+      #   run: |
+      #     $modelsPath = "${{ env.MODELS_PATH_WINDOWS }}"
+      #     $public = Join-Path $modelsPath "public"
+      #     $publicOld = Join-Path $modelsPath "public_old"
+      #     $publicOldOld = Join-Path $modelsPath "public_old_old"
+      #     if (Test-Path $public) {
+      #         Remove-Item -Recurse -Force $public
+      #     }
+      #     if (Test-Path $publicOld) {
+      #         Rename-Item -Path $publicOld -NewName "public"
+      #     }
+      #     if (Test-Path $publicOldOld) {
+      #         Rename-Item -Path $publicOldOld -NewName "public_old"
+      #     }
+      #     "Old Windows public models restored" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
 
       - name: Download OMZ models on Windows (setup venv, dependencies and download)
         id: download-omz-windows
