@@ -953,6 +953,7 @@ if array_contains "centerface" "${MODELS_TO_PROCESS[@]}" || array_contains "all"
     mv centerface.bin "$MODEL_DIR"
     cd ../../..
     rm -rf CenterFace
+    mkdir -p "$MODEL_DIR/FP32" "$MODEL_DIR/FP16"
     python3 - <<EOF
 import openvino
 import sys, os
