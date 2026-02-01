@@ -283,29 +283,29 @@ jobs:
           ./download_public_models.sh "${SPECIFIC_MODEL_NAME}" coco128
           echo "Downloaded ${SPECIFIC_MODEL_NAME} to ${target_dir}" >> "${GITHUB_STEP_SUMMARY}"
 
-      - name: Prepare directories - public models (Windows)
-        if: ${{ inputs.models_to_download == 'public' || inputs.models_to_download == 'all' || github.event_name == 'schedule' }}
-        shell: powershell
-        run: |
-          $modelsPath = "${{ env.MODELS_PATH_WINDOWS }}"
-          if (-not (Test-Path $modelsPath)) {
-              New-Item -ItemType Directory -Path $modelsPath | Out-Null
-          }
-          $public = Join-Path $modelsPath "public"
-          $publicOld = Join-Path $modelsPath "public_old"
-          $publicOldOld = Join-Path $modelsPath "public_old_old"
-          if (Test-Path $publicOld) {
-              if (Test-Path $publicOldOld) {
-                  Remove-Item -Recurse -Force $publicOldOld
-              }
-              Rename-Item -Path $publicOld -NewName "public_old_old"
-          }
-          if (Test-Path $public) {
-              if (Test-Path $publicOld) {
-                  Remove-Item -Recurse -Force $publicOld
-              }
-              Rename-Item -Path $public -NewName "public_old"
-          }
+      # - name: Prepare directories - public models (Windows)
+      #   if: ${{ inputs.models_to_download == 'public' || inputs.models_to_download == 'all' || github.event_name == 'schedule' }}
+      #   shell: powershell
+      #   run: |
+      #     $modelsPath = "${{ env.MODELS_PATH_WINDOWS }}"
+      #     if (-not (Test-Path $modelsPath)) {
+      #         New-Item -ItemType Directory -Path $modelsPath | Out-Null
+      #     }
+      #     $public = Join-Path $modelsPath "public"
+      #     $publicOld = Join-Path $modelsPath "public_old"
+      #     $publicOldOld = Join-Path $modelsPath "public_old_old"
+      #     if (Test-Path $publicOld) {
+      #         if (Test-Path $publicOldOld) {
+      #             Remove-Item -Recurse -Force $publicOldOld
+      #         }
+      #         Rename-Item -Path $publicOld -NewName "public_old_old"
+      #     }
+      #     if (Test-Path $public) {
+      #         if (Test-Path $publicOld) {
+      #             Remove-Item -Recurse -Force $publicOld
+      #         }
+      #         Rename-Item -Path $public -NewName "public_old"
+      #     }
 
       - name: Download public models on Windows
         id: download-public-windows
@@ -341,15 +341,15 @@ jobs:
             }
             "Public models downloaded on Windows" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
 
-      - name: Manage public models directories after success (Windows)
-        if: ${{ steps.verify-public-windows.outcome == 'success' && steps.download-public-windows.outcome == 'success' }}
-        shell: powershell
-        run: |
-          $publicOldOld = Join-Path "${{ env.MODELS_PATH_WINDOWS }}" "public_old_old"
-          if (Test-Path $publicOldOld) {
-              Remove-Item -Recurse -Force $publicOldOld
-          }
-          "New Windows public models set up" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+      # - name: Manage public models directories after success (Windows)
+      #   if: ${{ steps.verify-public-windows.outcome == 'success' && steps.download-public-windows.outcome == 'success' }}
+      #   shell: powershell
+      #   run: |
+      #     $publicOldOld = Join-Path "${{ env.MODELS_PATH_WINDOWS }}" "public_old_old"
+      #     if (Test-Path $publicOldOld) {
+      #         Remove-Item -Recurse -Force $publicOldOld
+      #     }
+      #     "New Windows public models set up" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
 
       - name: Restore public models directories after fail (Windows)
         if: ${{ always() && steps.download-public-windows.outcome != 'skipped' && !(steps.verify-public-windows.outcome == 'success' && steps.download-public-windows.outcome == 'success') }}
