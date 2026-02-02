@@ -1163,6 +1163,7 @@ safe_rmtree('deeplabv3_mnv2_pascal_train_aug')
 safe_rmtree('FP32')
 safe_rmtree('FP16')
 
+model_name = "deeplabv3"
 for precision, compress in [("FP32", False), ("FP16", True)]:
     out_dir = Path(precision)
     out_dir.mkdir(parents=True, exist_ok=True)
