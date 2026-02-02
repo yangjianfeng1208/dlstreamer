@@ -1300,6 +1300,6 @@ fi
 # Deactivate and remove venvs
 echo "Removing Python virtual environments..."
 deactivate
-rm -r "$VENV_DIR"
-rm -r "$VENV_DIR_QUANT"
-echo "Removed"
+# rm -r "$VENV_DIR"
+# rm -r "$VENV_DIR_QUANT"
+# echo "Removed"
