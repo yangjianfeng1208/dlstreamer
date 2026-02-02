@@ -1133,7 +1133,7 @@ if array_contains "deeplabv3" "${MODELS_TO_PROCESS[@]}" || array_contains "all" 
     cd "$MODEL_DIR"
     python3 - <<EOF "$DST_FILE1"
 import openvino
-import sys, os, shutil, gc
+import sys, os, shutil, gc, time
 from pathlib import Path
 
 orig_model_path = sys.argv[1]
