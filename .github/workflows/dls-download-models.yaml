@@ -48,6 +48,7 @@ env:
 
 jobs:
   setup-runners:
+    if: ${{ !inputs.specific_os || inputs.specific_os == 'all' || inputs.specific_os == 'linux' }}
     name: Set runners to execute update
     runs-on: ubuntu-latest
     outputs:

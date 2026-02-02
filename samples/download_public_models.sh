@@ -161,109 +161,6 @@ handle_error() {
     exit 1
 }
 
-# Download a single file from Hugging Face with a fallback that disables
-# certificate verification when corporate proxies strip certificates.
-download_hf_file() {
-  local repo="$1"
-  local filename="$2"
-  local destination="$3"
-  local url="https://huggingface.co/${repo}/resolve/main/${filename}"
-  local curl_args=(-L --retry 5 --retry-delay 5 --fail)
-
-  if curl "${curl_args[@]}" -o "$destination" "$url"; then
-    return 0
-  fi
-
-  echo_color "Secure download failed for ${filename}; retrying without certificate verification." "yellow"
-  curl "${curl_args[@]}" --insecure -o "$destination" "$url"
-}
-
-# Function to display help message
-show_help() {
-    cat << EOF
-$(echo_color "Usage:" "cyan")
-  $0 [MODEL] [QUANTIZE]
-
-$(echo_color "Arguments:" "cyan")
-  MODEL      Model name(s) to download. Can be:
-             - Single model: yolov8n
-             - Multiple models (comma-separated): yolov8n,yolov8s,centerface
-             - Special keywords: 'all' (all models) or 'yolo_all' (all YOLO models)
-             - Default: 'all'
-
-  QUANTIZE   Optional. Quantization dataset for INT8 models.
-             Supported values: coco, coco128
-             Leave empty to skip quantization.
-
-$(echo_color "Environment:" "cyan")
-  MODELS_PATH    Required. Path where models will be downloaded.
-                 Example: export MODELS_PATH=/path/to/models
-
-$(echo_color "Examples:" "cyan")
-  # Download all models
-  export MODELS_PATH=~/models
-  $0 all
-
-  # Download specific models
-  export MODELS_PATH=~/models
-  $0 yolov8n,yolov8s
-
-  # Download multiple models with quantization
-  export MODELS_PATH=~/models
-  $0 yolov8n,yolov8s,yolov10n coco128
-
-  # Download with quantization (single model)
-  export MODELS_PATH=~/models
-  $0 yolov8n coco128
-
-  # Download all YOLO models
-  export MODELS_PATH=~/models
-  $0 yolo_all
-
-$(echo_color "Supported Models:" "cyan")
-
-EOF
-
-    echo_color "  YOLO Models:" "yellow"
-    printf "    "
-    local count=0
-    for model in "${SUPPORTED_MODELS[@]}"; do
-        if [[ $model =~ ^yolo ]]; then
-            printf "%-30s" "$model"
-            ((count++))
-            if ((count % 3 == 0)); then
-                printf "\n    "
-            fi
-        fi
-    done
-    echo -e "\n"
-
-    echo_color "  Computer Vision Models:" "yellow"
-    printf "    "
-    count=0
-    for model in "${SUPPORTED_MODELS[@]}"; do
-        if [[ ! $model =~ ^yolo && $model != "all" ]]; then
-            printf "%-30s" "$model"
-            ((count++))
-            if ((count % 3 == 0)); then
-                printf "\n    "
-            fi
-        fi
-    done
-    echo -e "\n"
-
-    echo_color "  Special Keywords:" "yellow"
-    printf "    %-30s - Download all available models\n" "all"
-    printf "    %-30s - Download all YOLO models\n" "yolo_all"
-    echo ""
-}
-
-# Check for help argument
-if [[ "${MODEL}" == "-h" || "${MODEL}" == "--help" ]]; then
-    show_help
-    exit 0
-fi
-
 # Function to validate models
 validate_models() {
     local models_input="$1"
@@ -1052,6 +949,7 @@ EOF
   fi
 fi
 
+
 mapfile -t CLIP_MODELS < <(printf "%s\n" "${SUPPORTED_MODELS[@]}" | grep '^clip-vit-')
 for MODEL_NAME in "${CLIP_MODELS[@]}"; do
   if [ "$MODEL" == "$MODEL_NAME" ] || [ "$MODEL" == "all" ]; then
@@ -1066,19 +964,9 @@ for MODEL_NAME in "${CLIP_MODELS[@]}"; do
       IMAGE_PATH=car.png
       curl -L -o $IMAGE_PATH $IMAGE_URL
       echo "Image downloaded to $IMAGE_PATH"
-      CLIP_CACHE_DIR="$MODEL_DIR/hf-cache"
-      mkdir -p "$CLIP_CACHE_DIR"
-      CLIP_REPO="openai/$MODEL_NAME"
-      download_hf_file "$CLIP_REPO" "config.json" "$CLIP_CACHE_DIR/config.json" || handle_error $LINENO
-      download_hf_file "$CLIP_REPO" "preprocessor_config.json" "$CLIP_CACHE_DIR/preprocessor_config.json" || handle_error $LINENO
-      download_hf_file "$CLIP_REPO" "pytorch_model.bin" "$CLIP_CACHE_DIR/pytorch_model.bin" || handle_error $LINENO
-      clip_cache_path="$CLIP_CACHE_DIR"
-      if command -v cygpath >/dev/null 2>&1; then
-        clip_cache_path=$(cygpath -w "$CLIP_CACHE_DIR")
-      fi
-      activate_venv "$VENV_DIR"
-      python3 - <<EOF "$MODEL_NAME" "$IMAGE_PATH" "$clip_cache_path"
-from transformers import CLIPImageProcessor, CLIPVisionModel
+      source "$VENV_DIR/bin/activate"
+      python3 - <<EOF "$MODEL_NAME" "$IMAGE_PATH"
+from transformers import CLIPProcessor, CLIPVisionModel
 import PIL
 import openvino as ov
 from openvino.runtime import PartialShape, Type
@@ -1087,13 +975,12 @@ import os
 
 MODEL=sys.argv[1]
 img_path = sys.argv[2]
-model_cache = sys.argv[3]
 
 img = PIL.Image.open(img_path)
-vision_model = CLIPVisionModel.from_pretrained(model_cache, local_files_only=True)
+vision_model = CLIPVisionModel.from_pretrained('openai/'+MODEL)
 vision_model.eval()
-processor = CLIPImageProcessor.from_pretrained(model_cache, local_files_only=True)
-batch = processor(images=img, return_tensors='pt')["pixel_values"]
+processor = CLIPProcessor.from_pretrained('openai/'+MODEL)
+batch = processor.image_processor(images=img, return_tensors='pt')["pixel_values"]
 
 print("Conversion starting...")
 ov_model = ov.convert_model(vision_model, example_input=batch)
@@ -1194,56 +1081,6 @@ os.remove('${MODEL_NAME}.zip')
     cd -
   else
     echo_color "\nModel already exists: $MODEL_DIR.\n" "yellow"
-  fi
-fi
-
-# Pallet Defect Detection model
-if array_contains "pallet_defect_detection" "${MODELS_TO_PROCESS[@]}" || array_contains "all" "${MODELS_TO_PROCESS[@]}"; then
-  MODEL_NAME="pallet_defect_detection"
-  MODEL_DIR="$MODELS_PATH/public/$MODEL_NAME"
-  DST_FILE1="$MODEL_DIR/INT8/$MODEL_NAME.xml"
-
-  if [[ ! -f "$DST_FILE1" ]]; then
-    echo "Downloading and converting: ${MODEL_DIR}"
-    mkdir -p "$MODEL_DIR"
-    cd "$MODEL_DIR"
-
-    curl -L -k -o ${MODEL_NAME}.zip 'https://github.com/open-edge-platform/edge-ai-resources/raw/main/models/INT8/pallet_defect_detection.zip'
-    python3 -c "
-import zipfile
-import os
-with zipfile.ZipFile('${MODEL_NAME}.zip', 'r') as zip_ref:
-    zip_ref.extractall('.')
-os.remove('${MODEL_NAME}.zip')
-"
-
-    mkdir -p INT8
-    cp deployment/Detection/model/model.bin INT8/${MODEL_NAME}.bin
-    cp deployment/Detection/model/model.xml INT8/${MODEL_NAME}.xml
-    cp deployment/Detection/model/config.json INT8/config.json
-    chmod -R u+w deployment example_code
-    rm -rf deployment example_code
-    rm -f LICENSE README.md sample_image.jpg
-    cd -
-  else
-    echo_color "\nModel already exists: $MODEL_DIR.\n" "yellow"
-  fi
-fi
-
-# Colorcls2 model
-if array_contains "colorcls2" "${MODELS_TO_PROCESS[@]}" || array_contains "all" "${MODELS_TO_PROCESS[@]}"; then
-  MODEL_NAME="colorcls2"
-  MODEL_DIR="$MODELS_PATH/public/$MODEL_NAME/FP32"
-
-  if [[ ! -f "$MODEL_DIR/$MODEL_NAME.xml" ]]; then
-    echo "Downloading: ${MODEL_DIR}"
-    mkdir -p "$MODEL_DIR"
-    cd "$MODEL_DIR"
-    curl -L -k -o 'colorcls2.bin' 'https://github.com/open-edge-platform/edge-ai-suites/raw/main/metro-ai-suite/metro-vision-ai-app-recipe/smart-parking/src/dlstreamer-pipeline-server/models/colorcls2/colorcls2.bin'
-    curl -L -k -o 'colorcls2.xml' 'https://github.com/open-edge-platform/edge-ai-suites/raw/main/metro-ai-suite/metro-vision-ai-app-recipe/smart-parking/src/dlstreamer-pipeline-server/models/colorcls2/colorcls2.xml'
-    cd -
-  else
-    echo_color "\nModel already exists: $MODEL_DIR/$MODEL_NAME.xml.\n" "yellow"
   fi
 fi
 
