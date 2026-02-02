@@ -1137,7 +1137,7 @@ if array_contains "deeplabv3" "${MODELS_TO_PROCESS[@]}" || array_contains "all" 
     cd "$MODEL_DIR"
     python3 - <<EOF "$DST_FILE1"
 import openvino
-import sys, os, shutil
+import sys, os, shutil, gc
 
 orig_model_path = sys.argv[1]
 
@@ -1147,11 +1147,16 @@ ov_model.set_rt_info("semantic_mask", ['model_info', 'model_type'])
 
 print(ov_model)
 
+del core
+gc.collect()
+
 shutil.rmtree('deeplabv3_mnv2_pascal_train_aug')
 shutil.rmtree('FP32')
 shutil.rmtree('FP16')
 openvino.save_model(ov_model, './FP32/' + 'deeplabv3.xml', compress_to_fp16=False)
 openvino.save_model(ov_model, './FP16/' + 'deeplabv3.xml', compress_to_fp16=True)
+del ov_model
+gc.collect()
 EOF
   else
     echo_color "\nModel already exists: $MODEL_DIR.\n" "yellow"
