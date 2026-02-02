@@ -25,20 +25,82 @@ QUANTIZE_CONFIG_DIR=$(mktemp -d /tmp/tmp.XXXXXXXXXXXXXXXXXXXXXXXXXXX)
 YOLO_CONFIG_DIR=$DOWNLOAD_CONFIG_DIR
 
 SUPPORTED_MODELS=(
+  "all"
+  "yolo_all"
   "yolox-tiny"
   "yolox_s"
   "yolov5n"
+  "yolov5s"
+  "yolov5m"
+  "yolov5l"
+  "yolov5x"
+  "yolov5n6"
+  "yolov5s6"
+  "yolov5m6"
+  "yolov5l6"
+  "yolov5x6"
+  "yolov5nu"
+  "yolov5su"
+  "yolov5mu"
+  "yolov5lu"
+  "yolov5xu"
+  "yolov5n6u"
+  "yolov5s6u"
+  "yolov5m6u"
+  "yolov5l6u"
+  "yolov5x6u"
   "yolov7"
   "yolov8n"
+  "yolov8s"
+  "yolov8m"
+  "yolov8l"
+  "yolov8x"
   "yolov8n-obb"
+  "yolov8s-obb"
+  "yolov8m-obb"
+  "yolov8l-obb"
+  "yolov8x-obb"
   "yolov8n-seg"
+  "yolov8s-seg"
+  "yolov8m-seg"
+  "yolov8l-seg"
+  "yolov8x-seg"
   "yolov8n-pose"
+  "yolov8s-pose"
+  "yolov8m-pose"
+  "yolov8l-pose"
+  "yolov8x-pose"
+  "yolov8_license_plate_detector"
   "yolov9t"
+  "yolov9s"
+  "yolov9m"
+  "yolov9c"
+  "yolov9e"
   "yolov10n"
+  "yolov10s"
+  "yolov10m"
+  "yolov10b"
+  "yolov10l"
+  "yolov10x"
   "yolo11n"
+  "yolo11s"
+  "yolo11m"
+  "yolo11l"
+  "yolo11x"
   "yolo11n-obb"
+  "yolo11s-obb"
+  "yolo11m-obb"
+  "yolo11l-obb"
+  "yolo11x-obb"
   "yolo11n-seg"
+  "yolo11s-seg"
+  "yolo11m-seg"
+  "yolo11l-seg"
+  "yolo11x-seg"
   "yolo11n-pose"
+  "yolo11s-pose"
+  "yolo11m-pose"
+  "yolo11l-pose"
   "yolo11x-pose"
   "centerface"
   "hsemotion"
@@ -46,101 +108,14 @@ SUPPORTED_MODELS=(
   "ch_PP-OCRv4_rec_infer" # PaddlePaddle OCRv4 multilingual model
   "pallet_defect_detection" # Custom model for pallet defect detection
   "colorcls2" # Color classification model
-  "mars-small128" # DeepSORT person re-identification model (uses convert_mars_deepsort.py)
 )
-
-# SUPPORTED_MODELS=(
-#   "all"
-#   # "yolo_all"
-#   "yolox-tiny"
-#   "yolox_s"
-#   "yolov5n"
-#   # "yolov5s"
-#   # "yolov5m"
-#   # "yolov5l"
-#   # "yolov5x"
-#   # "yolov5n6"
-#   # "yolov5s6"
-#   # "yolov5m6"
-#   # "yolov5l6"
-#   # "yolov5x6"
-#   # "yolov5nu"
-#   # "yolov5su"
-#   # "yolov5mu"
-#   # "yolov5lu"
-#   # "yolov5xu"
-#   # "yolov5n6u"
-#   # "yolov5s6u"
-#   # "yolov5m6u"
-#   # "yolov5l6u"
-#   # "yolov5x6u"
-#   "yolov7"
-#   "yolov8n"
-#   # "yolov8s"
-#   # "yolov8m"
-#   # "yolov8l"
-#   # "yolov8x"
-#   "yolov8n-obb"
-#   # "yolov8s-obb"
-#   # "yolov8m-obb"
-#   # "yolov8l-obb"
-#   # "yolov8x-obb"
-#   "yolov8n-seg"
-#   # "yolov8s-seg"
-#   # "yolov8m-seg"
-#   # "yolov8l-seg"
-#   # "yolov8x-seg"
-#   "yolov8n-pose"
-#   # "yolov8s-pose"
-#   # "yolov8m-pose"
-#   # "yolov8l-pose"
-#   # "yolov8x-pose"
-#   # "yolov8_license_plate_detector"
-#   "yolov9t"
-#   # "yolov9s"
-#   # "yolov9m"
-#   # "yolov9c"
-#   # "yolov9e"
-#   "yolov10n"
-#   # "yolov10s"
-#   # "yolov10m"
-#   # "yolov10b"
-#   # "yolov10l"
-#   # "yolov10x"
-#   "yolo11n"
-#   # "yolo11s"
-#   # "yolo11m"
-#   # "yolo11l"
-#   # "yolo11x"
-#   "yolo11n-obb"
-#   # "yolo11s-obb"
-#   # "yolo11m-obb"
-#   # "yolo11l-obb"
-#   # "yolo11x-obb"
-#   "yolo11n-seg"
-#   # "yolo11s-seg"
-#   # "yolo11m-seg"
-#   # "yolo11l-seg"
-#   # "yolo11x-seg"
-#   "yolo11n-pose"
-#   # "yolo11s-pose"
-#   # "yolo11m-pose"
-#   # "yolo11l-pose"
-#   "yolo11x-pose"
-#   "centerface"
-#   "hsemotion"
-#   "deeplabv3"
-#   "ch_PP-OCRv4_rec_infer" # PaddlePaddle OCRv4 multilingual model
-#   "pallet_defect_detection" # Custom model for pallet defect detection
-#   "colorcls2" # Color classification model
-#   "mars-small128" # DeepSORT person re-identification model (uses convert_mars_deepsort.py)
-# )
 
 if [[ "$OSTYPE" != "msys" && "$OSTYPE" != "cygwin" ]]; then
   SUPPORTED_MODELS+=(
   "clip-vit-large-patch14"
   "clip-vit-base-patch16"
   "clip-vit-base-patch32"
+  "mars-small128" # DeepSORT person re-identification model (uses convert_mars_deepsort.py)
   )
 fi
 
@@ -1117,23 +1092,23 @@ EOF
 done
 
 if array_contains "deeplabv3" "${MODELS_TO_PROCESS[@]}" || array_contains "all" "${MODELS_TO_PROCESS[@]}"; then
-    MODEL_NAME="deeplabv3"
-    MODEL_DIR="$MODELS_PATH/public/$MODEL_NAME"
-    TMP_DIR="${MODEL_DIR}_tmp"
+  MODEL_NAME="deeplabv3"
+  MODEL_DIR="$MODELS_PATH/public/$MODEL_NAME"
+  TMP_DIR="${MODEL_DIR}_tmp"
 
-    pip install --no-cache-dir tensorflow || handle_error $LINENO
+  pip install --no-cache-dir tensorflow || handle_error $LINENO
 
-    if [[ ! -f "$MODEL_DIR/FP32/$MODEL_NAME.xml" || ! -f "$MODEL_DIR/FP16/$MODEL_NAME.xml" ]]; then
-        echo "Processing model in temporary directory: $TMP_DIR"
+  if [[ ! -f "$MODEL_DIR/FP32/$MODEL_NAME.xml" || ! -f "$MODEL_DIR/FP16/$MODEL_NAME.xml" ]]; then
+    echo "Processing model in temporary directory: $TMP_DIR"
 
-        rm -rf "$TMP_DIR"
-        mkdir -p "$TMP_DIR"
+    rm -rf "$TMP_DIR"
+    mkdir -p "$TMP_DIR"
 
-        cd "$MODELS_PATH"
-        omz_downloader --name "$MODEL_NAME" --output_dir "$TMP_DIR"
-        omz_converter --name "$MODEL_NAME" --download_dir "$TMP_DIR" --output_dir "$TMP_DIR"
+    cd "$MODELS_PATH"
+    omz_downloader --name "$MODEL_NAME" --output_dir "$TMP_DIR"
+    omz_converter --name "$MODEL_NAME" --download_dir "$TMP_DIR" --output_dir "$TMP_DIR"
 
-        python3 - <<EOF "$TMP_DIR" "$MODEL_DIR" "$MODEL_NAME"
+    python3 - <<EOF "$TMP_DIR" "$MODEL_DIR" "$MODEL_NAME"
 import openvino
 import sys, os, shutil
 from pathlib import Path
@@ -1161,14 +1136,13 @@ for precision, compress in [("FP32", False), ("FP16", True)]:
     save_file = target_dir / f"{model_name}.xml"
     openvino.save_model(ov_model, str(save_file), compress_to_fp16=compress)
     print(f"Successfully saved: {save_file}")
-
 EOF
-        cd "$MODELS_PATH"
-        rm -rf "$TMP_DIR"
-        echo -e "\nCleaned up $TMP_DIR. Deployment complete.\n"
-    else
-        echo -e "\nModel already exists in $MODEL_DIR.\n"
-    fi
+
+    cd "$MODELS_PATH"
+    rm -rf "$TMP_DIR"
+  else
+    echo_color "\nModel already exists: $MODEL_DIR.\n" "yellow"
+  fi
 fi
 
 # PaddlePaddle OCRv4 multilingual model
