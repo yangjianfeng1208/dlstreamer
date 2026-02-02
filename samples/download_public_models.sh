@@ -13,14 +13,6 @@ LAUNCH_DIR="$PWD"
 
 if [ -f /etc/os-release ]; then
     . /etc/os-release
-    echo "Running on Linux: $PRETTY_NAME"
-elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
-    NAME="Windows"
-    ID="windows"
-    PRETTY_NAME="Windows Git Bash"
-    echo "Running on $PRETTY_NAME"
-else
-    echo "Unknown OS type: $OSTYPE"
 fi
 
 # Changing the config dir for the duration of the script to prevent potential conflics with
@@ -32,81 +24,21 @@ YOLO_CONFIG_DIR=$DOWNLOAD_CONFIG_DIR
 
 SUPPORTED_MODELS=(
   "all"
-  "yolo_all"
+  # "yolo_all"
   "yolox-tiny"
   "yolox_s"
-  # "yolov5n"
-  # "yolov5s"
-  # "yolov5m"
-  # "yolov5l"
-  # "yolov5x"
-  # "yolov5n6"
-  # "yolov5s6"
-  # "yolov5m6"
-  # "yolov5l6"
-  # "yolov5x6"
-  # "yolov5nu"
-  # "yolov5su"
-  # "yolov5mu"
-  # "yolov5lu"
-  # "yolov5xu"
-  # "yolov5n6u"
-  # "yolov5s6u"
-  # "yolov5m6u"
-  # "yolov5l6u"
-  # "yolov5x6u"
-  # "yolov7"
-  # "yolov8n"
-  # "yolov8s"
-  # "yolov8m"
-  # "yolov8l"
-  # "yolov8x"
-  # "yolov8n-obb"
-  # "yolov8s-obb"
-  # "yolov8m-obb"
-  # "yolov8l-obb"
-  # "yolov8x-obb"
-  # "yolov8n-seg"
-  # "yolov8s-seg"
-  # "yolov8m-seg"
-  # "yolov8l-seg"
-  # "yolov8x-seg"
-  # "yolov8n-pose"
-  # "yolov8s-pose"
-  # "yolov8m-pose"
-  # "yolov8l-pose"
-  # "yolov8x-pose"
-  # "yolov8_license_plate_detector"
-  # "yolov9t"
-  # "yolov9s"
-  # "yolov9m"
-  # "yolov9c"
-  # "yolov9e"
-  # "yolov10n"
-  # "yolov10s"
-  # "yolov10m"
-  # "yolov10b"
-  # "yolov10l"
-  # "yolov10x"
-  # "yolo11n"
-  # "yolo11s"
-  # "yolo11m"
-  # "yolo11l"
-  # "yolo11x"
-  # "yolo11n-obb"
-  # "yolo11s-obb"
-  # "yolo11m-obb"
-  # "yolo11l-obb"
-  # "yolo11x-obb"
-  # "yolo11n-seg"
-  # "yolo11s-seg"
-  # "yolo11m-seg"
-  # "yolo11l-seg"
-  # "yolo11x-seg"
-  # "yolo11n-pose"
-  # "yolo11s-pose"
-  # "yolo11m-pose"
-  # "yolo11l-pose"
+  "yolov5n"
+  "yolov7"
+  "yolov8n"
+  "yolov8n-obb"
+  "yolov8n-seg"
+  "yolov8n-pose"
+  "yolov9t"
+  "yolov10n"
+  "yolo11n"
+  "yolo11n-obb"
+  "yolo11n-seg"
+  "yolo11n-pose"
   "yolo11x-pose"
   "centerface"
   "hsemotion"
@@ -116,6 +48,93 @@ SUPPORTED_MODELS=(
   "colorcls2" # Color classification model
   "mars-small128" # DeepSORT person re-identification model (uses convert_mars_deepsort.py)
 )
+
+# SUPPORTED_MODELS=(
+#   "all"
+#   # "yolo_all"
+#   "yolox-tiny"
+#   "yolox_s"
+#   "yolov5n"
+#   # "yolov5s"
+#   # "yolov5m"
+#   # "yolov5l"
+#   # "yolov5x"
+#   # "yolov5n6"
+#   # "yolov5s6"
+#   # "yolov5m6"
+#   # "yolov5l6"
+#   # "yolov5x6"
+#   # "yolov5nu"
+#   # "yolov5su"
+#   # "yolov5mu"
+#   # "yolov5lu"
+#   # "yolov5xu"
+#   # "yolov5n6u"
+#   # "yolov5s6u"
+#   # "yolov5m6u"
+#   # "yolov5l6u"
+#   # "yolov5x6u"
+#   "yolov7"
+#   "yolov8n"
+#   # "yolov8s"
+#   # "yolov8m"
+#   # "yolov8l"
+#   # "yolov8x"
+#   "yolov8n-obb"
+#   # "yolov8s-obb"
+#   # "yolov8m-obb"
+#   # "yolov8l-obb"
+#   # "yolov8x-obb"
+#   "yolov8n-seg"
+#   # "yolov8s-seg"
+#   # "yolov8m-seg"
+#   # "yolov8l-seg"
+#   # "yolov8x-seg"
+#   "yolov8n-pose"
+#   # "yolov8s-pose"
+#   # "yolov8m-pose"
+#   # "yolov8l-pose"
+#   # "yolov8x-pose"
+#   # "yolov8_license_plate_detector"
+#   "yolov9t"
+#   # "yolov9s"
+#   # "yolov9m"
+#   # "yolov9c"
+#   # "yolov9e"
+#   "yolov10n"
+#   # "yolov10s"
+#   # "yolov10m"
+#   # "yolov10b"
+#   # "yolov10l"
+#   # "yolov10x"
+#   "yolo11n"
+#   # "yolo11s"
+#   # "yolo11m"
+#   # "yolo11l"
+#   # "yolo11x"
+#   "yolo11n-obb"
+#   # "yolo11s-obb"
+#   # "yolo11m-obb"
+#   # "yolo11l-obb"
+#   # "yolo11x-obb"
+#   "yolo11n-seg"
+#   # "yolo11s-seg"
+#   # "yolo11m-seg"
+#   # "yolo11l-seg"
+#   # "yolo11x-seg"
+#   "yolo11n-pose"
+#   # "yolo11s-pose"
+#   # "yolo11m-pose"
+#   # "yolo11l-pose"
+#   "yolo11x-pose"
+#   "centerface"
+#   "hsemotion"
+#   "deeplabv3"
+#   "ch_PP-OCRv4_rec_infer" # PaddlePaddle OCRv4 multilingual model
+#   "pallet_defect_detection" # Custom model for pallet defect detection
+#   "colorcls2" # Color classification model
+#   "mars-small128" # DeepSORT person re-identification model (uses convert_mars_deepsort.py)
+# )
 
 if [[ "$OSTYPE" != "msys" && "$OSTYPE" != "cygwin" ]]; then
   SUPPORTED_MODELS+=(
@@ -441,7 +460,7 @@ quantize_yolo_model() {
     mkdir -p "$MODELS_PATH/datasets"
     local DATASET_MANIFEST="$MODELS_PATH/datasets/$QUANTIZE.yaml"
 
-    curl -L -o "$DATASET_MANIFEST" ${SUPPORTED_QUANTIZATION_DATASETS[$QUANTIZE]}
+    curl -L -o "$DATASET_MANIFEST" "${SUPPORTED_QUANTIZATION_DATASETS[$QUANTIZE]}"
     echo "Quantizing: ${MODEL_DIR}"
     mkdir -p "$MODEL_DIR"
 
@@ -1051,7 +1070,7 @@ for MODEL_NAME in "${CLIP_MODELS[@]}"; do
       IMAGE_PATH=car.png
       curl -L -o $IMAGE_PATH $IMAGE_URL
       echo "Image downloaded to $IMAGE_PATH"
-      source "$VENV_DIR/bin/activate"
+      activate_venv "$VENV_DIR"
       python3 - <<EOF "$MODEL_NAME" "$IMAGE_PATH"
 from transformers import CLIPProcessor, CLIPVisionModel
 import PIL
@@ -1126,12 +1145,29 @@ print(ov_model)
 
 del core
 gc.collect()
+def safe_rmtree(path, retries=5, delay=1):
+    path = Path(path)
+    for i in range(retries):
+        try:
+            if path.exists():
+                shutil.rmtree(path)
+            return
+        except OSError:
+            if i < retries - 1:
+                time.sleep(delay)
+            else:
+                print(f"Warning: Could not delete {path} after {retries} retries. It might be locked by another process.")
 
-shutil.rmtree('deeplabv3_mnv2_pascal_train_aug')
-shutil.rmtree('FP32')
-shutil.rmtree('FP16')
-openvino.save_model(ov_model, './FP32/' + 'deeplabv3.xml', compress_to_fp16=False)
-openvino.save_model(ov_model, './FP16/' + 'deeplabv3.xml', compress_to_fp16=True)
+safe_rmtree('deeplabv3_mnv2_pascal_train_aug')
+safe_rmtree('FP32')
+safe_rmtree('FP16')
+
+for precision, compress in [("FP32", False), ("FP16", True)]:
+    out_dir = Path(precision)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    save_path = out_dir / f"{model_name}.xml"
+    openvino.save_model(ov_model, str(save_path), compress_to_fp16=compress)
+
 del ov_model
 gc.collect()
 EOF
@@ -1269,6 +1305,6 @@ fi
 # Deactivate and remove venvs
 echo "Removing Python virtual environments..."
 deactivate
-rm -r $VENV_DIR
-rm -r $VENV_DIR_QUANT
+rm -r "$VENV_DIR"
+rm -r "$VENV_DIR_QUANT"
 echo "Removed"
