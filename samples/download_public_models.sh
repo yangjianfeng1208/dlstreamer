@@ -111,14 +111,17 @@ SUPPORTED_MODELS=(
   "centerface"
   "hsemotion"
   "deeplabv3"
-  # "clip-vit-large-patch14"
-  # "clip-vit-base-patch16"
-  # "clip-vit-base-patch32"
   "ch_PP-OCRv4_rec_infer" # PaddlePaddle OCRv4 multilingual model
-  "pallet_defect_detection" # Custom model for pallet defect detection
-  "colorcls2" # Color classification model
   "mars-small128" # DeepSORT person re-identification model (uses convert_mars_deepsort.py)
 )
+
+if [[ "$OSTYPE" != "msys" && "$OSTYPE" != "cygwin" ]]; then
+  SUPPORTED_MODELS+=(
+  "clip-vit-large-patch14"
+  "clip-vit-base-patch16"
+  "clip-vit-base-patch32"
+  )
+fi
 
 # Corresponds to files in 'datasets' directory
 declare -A SUPPORTED_QUANTIZATION_DATASETS
