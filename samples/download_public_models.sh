@@ -25,8 +25,6 @@ QUANTIZE_CONFIG_DIR=$(mktemp -d /tmp/tmp.XXXXXXXXXXXXXXXXXXXXXXXXXXX)
 YOLO_CONFIG_DIR=$DOWNLOAD_CONFIG_DIR
 
 SUPPORTED_MODELS=(
-  "all"
-  # "yolo_all"
   "yolox-tiny"
   "yolox_s"
   "yolov5n"
