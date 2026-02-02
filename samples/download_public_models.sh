@@ -13,6 +13,8 @@ LAUNCH_DIR="$PWD"
 
 if [ -f /etc/os-release ]; then
     . /etc/os-release
+elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || -n "$WINDIR" ]]; then
+    ID="windows"
 fi
 
 # Changing the config dir for the duration of the script to prevent potential conflics with
