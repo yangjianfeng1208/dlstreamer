@@ -1117,65 +1117,58 @@ EOF
 done
 
 if array_contains "deeplabv3" "${MODELS_TO_PROCESS[@]}" || array_contains "all" "${MODELS_TO_PROCESS[@]}"; then
-  MODEL_NAME="deeplabv3"
-  MODEL_DIR="$MODELS_PATH/public/$MODEL_NAME"
-  DST_FILE1="$MODEL_DIR/FP32/$MODEL_NAME.xml"
-  DST_FILE2="$MODEL_DIR/FP16/$MODEL_NAME.xml"
+    MODEL_NAME="deeplabv3"
+    MODEL_DIR="$MODELS_PATH/public/$MODEL_NAME"
+    TMP_DIR="${MODEL_DIR}_tmp"
 
-  pip install --no-cache-dir tensorflow || handle_error $LINENO
+    pip install --no-cache-dir tensorflow || handle_error $LINENO
 
-  if [[ ! -f "$DST_FILE1" || ! -f "$DST_FILE2" ]]; then
-    cd "$MODELS_PATH"
-    echo "Downloading and converting: ${MODEL_DIR}"
-    activate_venv "$VENV_DIR"
-    omz_downloader --name "$MODEL_NAME"
-    omz_converter --name "$MODEL_NAME"
-    cd "$MODEL_DIR"
-    python3 - <<EOF "$DST_FILE1"
+    if [[ ! -f "$MODEL_DIR/FP32/$MODEL_NAME.xml" || ! -f "$MODEL_DIR/FP16/$MODEL_NAME.xml" ]]; then
+        echo "Processing model in temporary directory: $TMP_DIR"
+
+        rm -rf "$TMP_DIR"
+        mkdir -p "$TMP_DIR"
+
+        cd "$MODELS_PATH"
+        omz_downloader --name "$MODEL_NAME" --output_dir "$TMP_DIR"
+        omz_converter --name "$MODEL_NAME" --download_dir "$TMP_DIR" --output_dir "$TMP_DIR"
+
+        python3 - <<EOF "$TMP_DIR" "$MODEL_DIR" "$MODEL_NAME"
 import openvino
-import sys, os, shutil, gc, time
+import sys, os, shutil
 from pathlib import Path
 
-orig_model_path = sys.argv[1]
+tmp_path = Path(sys.argv[1])
+final_path = Path(sys.argv[2])
+model_name = sys.argv[3]
+
+xml_files = list(tmp_path.glob(f"**/{model_name}.xml"))
+if not xml_files:
+    print("Error: Could not find converted model in tmp directory")
+    sys.exit(1)
 
 core = openvino.Core()
-ov_model = core.read_model(model=orig_model_path)
+ov_model = core.read_model(model=xml_files[0])
 ov_model.set_rt_info("semantic_mask", ['model_info', 'model_type'])
 
-print(ov_model)
+if final_path.exists():
+    shutil.rmtree(final_path)
+final_path.mkdir(parents=True, exist_ok=True)
 
-del core
-gc.collect()
-def safe_rmtree(path, retries=5, delay=1):
-    path = Path(path)
-    for i in range(retries):
-        try:
-            if path.exists():
-                shutil.rmtree(path)
-            return
-        except OSError:
-            if i < retries - 1:
-                time.sleep(delay)
-            else:
-                print(f"Warning: Could not delete {path} after {retries} retries. It might be locked by another process.")
-
-safe_rmtree('deeplabv3_mnv2_pascal_train_aug')
-safe_rmtree('FP32')
-safe_rmtree('FP16')
-
-model_name = "deeplabv3"
 for precision, compress in [("FP32", False), ("FP16", True)]:
-    out_dir = Path(precision)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    save_path = out_dir / f"{model_name}.xml"
-    openvino.save_model(ov_model, str(save_path), compress_to_fp16=compress)
+    target_dir = final_path / precision
+    target_dir.mkdir(exist_ok=True)
+    save_file = target_dir / f"{model_name}.xml"
+    openvino.save_model(ov_model, str(save_file), compress_to_fp16=compress)
+    print(f"Successfully saved: {save_file}")
 
-del ov_model
-gc.collect()
 EOF
-  else
-    echo_color "\nModel already exists: $MODEL_DIR.\n" "yellow"
-  fi
+        cd "$MODELS_PATH"
+        rm -rf "$TMP_DIR"
+        echo -e "\nCleaned up $TMP_DIR. Deployment complete.\n"
+    else
+        echo -e "\nModel already exists in $MODEL_DIR.\n"
+    fi
 fi
 
 # PaddlePaddle OCRv4 multilingual model
