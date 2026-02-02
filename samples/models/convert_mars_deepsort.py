@@ -21,6 +21,7 @@
 # ==============================================================================
 
 import argparse
+import io
 import logging
 import urllib.request
 import sys
@@ -33,6 +34,20 @@ import nncf
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+
+def _make_stream_unicode_safe(stream):
+    """Ensure Windows GBK consoles don't crash on emoji/log output."""
+    try:
+        stream.reconfigure(errors='replace')
+        return stream
+    except AttributeError:
+        # Fallback for environments where reconfigure isn't available
+        return io.TextIOWrapper(stream.buffer, encoding=stream.encoding or 'utf-8', errors='replace')
+
+
+sys.stdout = _make_stream_unicode_safe(sys.stdout)
+sys.stderr = _make_stream_unicode_safe(sys.stderr)
 
 
 def download_model_py():

@@ -1276,11 +1276,11 @@ if array_contains "mars-small128" "${MODELS_TO_PROCESS[@]}" || array_contains "a
     echo_color "Running Mars-Small128 converter..." "blue"
     python3 "$CONVERTER_SCRIPT" --output-dir "$MODEL_DIR" --precision both || handle_error $LINENO
 
-    echo_color "✅ Mars-Small128 conversion completed" "green"
+    echo_color " Mars-Small128 conversion completed" "green"
     echo_color "═══════════════════════════════════════════════════" "cyan"
-    echo_color "📁 Output directory: $MODEL_DIR" "blue"
-    echo_color "📏 Models: mars_small128_fp32.xml, mars_small128_int8.xml" "blue"
-    echo_color "🎯 Usage: DeepSORT person re-identification tracking" "blue"
+    echo_color " Output directory: $MODEL_DIR" "blue"
+    echo_color " Models: mars_small128_fp32.xml, mars_small128_int8.xml" "blue"
+    echo_color " Usage: DeepSORT person re-identification tracking" "blue"
     echo_color "═══════════════════════════════════════════════════" "cyan"
 
     cd ../..
