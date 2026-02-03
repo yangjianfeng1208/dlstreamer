@@ -1338,36 +1338,36 @@ if array_contains "colorcls2" "${MODELS_TO_PROCESS[@]}" || array_contains "all" 
 fi
 
 
-# ================================= Mars-Small128 FP32 & INT8 =================================
-if array_contains "mars-small128" "${MODELS_TO_PROCESS[@]}" || array_contains "all" "${MODELS_TO_PROCESS[@]}"; then
-  display_header "Downloading Mars-Small128 model"
-  MODEL_NAME="mars-small128"
-  MODEL_DIR="$MODELS_PATH/public/$MODEL_NAME"
+# # ================================= Mars-Small128 FP32 & INT8 =================================
+# if array_contains "mars-small128" "${MODELS_TO_PROCESS[@]}" || array_contains "all" "${MODELS_TO_PROCESS[@]}"; then
+#   display_header "Downloading Mars-Small128 model"
+#   MODEL_NAME="mars-small128"
+#   MODEL_DIR="$MODELS_PATH/public/$MODEL_NAME"
 
-  if [[ ! -f "$MODEL_DIR/mars_small128_fp32.xml" ]]; then
-    echo_color "Converting Mars-Small128 model for DeepSORT tracking..." "blue"
+#   if [[ ! -f "$MODEL_DIR/mars_small128_fp32.xml" ]]; then
+#     echo_color "Converting Mars-Small128 model for DeepSORT tracking..." "blue"
 
-    # Get the script directory (samples directory) using absolute path
-    cd "$LAUNCH_DIR"
-    echo "Current directory: $(pwd)"
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    echo "Script directory: $SCRIPT_DIR"
-    CONVERTER_SCRIPT="$SCRIPT_DIR/models/convert_mars_deepsort.py"
+#     # Get the script directory (samples directory) using absolute path
+#     cd "$LAUNCH_DIR"
+#     echo "Current directory: $(pwd)"
+#     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+#     echo "Script directory: $SCRIPT_DIR"
+#     CONVERTER_SCRIPT="$SCRIPT_DIR/models/convert_mars_deepsort.py"
 
-    if [[ ! -f "$CONVERTER_SCRIPT" ]]; then
-      echo_color "ERROR: Converter script not found: $CONVERTER_SCRIPT" "red"
-      handle_error $LINENO
-    fi
+#     if [[ ! -f "$CONVERTER_SCRIPT" ]]; then
+#       echo_color "ERROR: Converter script not found: $CONVERTER_SCRIPT" "red"
+#       handle_error $LINENO
+#     fi
 
-    mkdir -p "$MODEL_DIR"
-    cd "$MODEL_DIR"
+#     mkdir -p "$MODEL_DIR"
+#     cd "$MODEL_DIR"
 
-    echo_color "Running Mars-Small128 converter..." "blue"
-    python3 "$CONVERTER_SCRIPT" --output-dir "$MODEL_DIR" --precision both || handle_error $LINENO
+#     echo_color "Running Mars-Small128 converter..." "blue"
+#     python3 "$CONVERTER_SCRIPT" --output-dir "$MODEL_DIR" --precision both || handle_error $LINENO
 
-    echo_color "Mars-Small128 conversion completed" "green"
-    cd ../..
-  else
-    echo_color "\nModel already exists: $MODEL_DIR.\n" "yellow"
-  fi
-fi
+#     echo_color "Mars-Small128 conversion completed" "green"
+#     cd ../..
+#   else
+#     echo_color "\nModel already exists: $MODEL_DIR.\n" "yellow"
+#   fi
+# fi
