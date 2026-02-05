@@ -14,8 +14,7 @@ on:
         description: "Branch in dl-streamer-tests repo (default is main)"
         required: false
         type: string
-        # default: "main"
-        default: "yang_windows_ci"
+        default: "main"
 permissions: {}
 env:
   DLS_REPO_TARGET_DIRECTORY: 'C:\dlstreamer_repo'
@@ -46,7 +45,6 @@ jobs:
       - name: Initialize Emojis
         shell: pwsh
         run: |
-          # 定义映射表
           $emojis = @{
             "EPASS"    = [char]0x2705  # ✅
             "EFAIL"    = [char]0x274C  # ❌
@@ -81,7 +79,7 @@ jobs:
       #     git submodule update --init thirdparty/googletest
 
       # - name: Copy DLStreamer repo
-      #   shell: powershell
+      #   shell: pwsh
       #   run: |
       #     if (Test-Path ${{ env.DLS_REPO_TARGET_DIRECTORY }}) {
       #         Remove-Item -Recurse -Force ${{ env.DLS_REPO_TARGET_DIRECTORY }}
@@ -90,14 +88,14 @@ jobs:
       #     Copy-Item -Path "dlstreamer-repo\*" -Destination ${{ env.DLS_REPO_TARGET_DIRECTORY }} -Recurse -Force
 
       # ======================================================== BUILDING PART ========================================================
-      # - name: ${{ env.EBOX }} Build DLStreamer DLLs
-      #   shell: powershell
+      # - name: "${{ env.EBOX }} Build DLStreamer DLLs"
+      #   shell: pwsh
       #   run: |
       #     cd ${{ env.DLS_REPO_TARGET_DIRECTORY }}
       #     & ./scripts/build_dlstreamer_dlls.ps1 -useInternalProxy
 
       # - name: Copy DLLs
-      #   shell: powershell
+      #   shell: pwsh
       #   run: |
       #     $target = "${{ env.DLS_DLL_TARGET_DIRECTORY }}"
       #     $source = "${{ env.DLS_BUILD_DIRECTORY }}\intel64\Release\bin"
@@ -117,7 +115,7 @@ jobs:
       #     Get-ChildItem -Path $target -Recurse
 
       - name: Print list of DLLs with sizes
-        shell: powershell
+        shell: pwsh
         run: |
           $files = Get-ChildItem -Path ${{ env.DLS_DLL_TARGET_DIRECTORY }} -Recurse -Filter *.dll -File
           $table = $files | ForEach-Object {
@@ -144,7 +142,7 @@ jobs:
           persist-credentials: false
           clean: false
 
-      - name: Install Python
+      - name: "Install Python v${{ env.PYTHON_VERSION }}"
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # 5.0.0
         id: cp312
         with:
@@ -154,14 +152,14 @@ jobs:
       - name: Capture Python path
         env:
           RAW_PYTHON_PATH: ${{ steps.cp312.outputs.python-path }}
-        shell: powershell
+        shell: pwsh
         run: |
           $actualPath = "$env:RAW_PYTHON_PATH"
           Write-Host "Detected Python Path: $actualPath"
           echo "PYTHON_EXE_PATH=$actualPath" >> $env:GITHUB_ENV
 
       - name: Check out DLStreamer Windows dependencies
-        shell: powershell
+        shell: pwsh
         run: |
           $deps = @{
             "OpenVINO Runtime" = $env:OPENVINO_RUNTIME_DIRECTORY
@@ -192,8 +190,8 @@ jobs:
           }
           Write-Host "All dependencies verified successfully." -ForegroundColor Green
 
-      - name: ${{ env.EGEAR }} Setup static Windows PATH for following tests
-        shell: powershell
+      - name: "${{ env.EGEAR }} Setup static Windows PATH for following tests"
+        shell: pwsh
         run: |
           $customPaths = @(
             "${env:OPENVINO_RUNTIME_DIRECTORY}\bin\intel64\Release",
@@ -221,7 +219,7 @@ jobs:
           Write-Host "----------------------------------------------"
           Write-Host "Successfully configured GST_PLUGIN_PATH=$gstPluginPath" -ForegroundColor Green
 
-      - name: ${{ env.ESEARCH }} Validate DLStreamer elements
+      - name: "${{ env.ESEARCH }} Validate DLStreamer elements"
         shell: pwsh
         run: |
           [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -265,7 +263,7 @@ jobs:
           }
 
       - name: Install Python dependencies in VENV
-        shell: powershell
+        shell: pwsh
         env:
           WORKSPACE: ${{ github.workspace }}
         run: |
@@ -294,7 +292,7 @@ jobs:
           "VENV_PYTHON=$VenvPython" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Create test results directory
-        shell: powershell
+        shell: pwsh
         env:
           RESULTS_DIR_BASE: ${{ env.TESTS_RESULTS_DIRECTORY }}
           WORKSPACE: ${{ github.workspace }}
@@ -315,7 +313,7 @@ jobs:
           }
 
       - name: Verify resource directories (Models and Videos)
-        shell: powershell
+        shell: pwsh
         run: |
           $Resources = @(
               @{ Name = "Models"; Path = "${{ env.MODELS_PATH }}" },
@@ -343,9 +341,9 @@ jobs:
               exit 1
           }
 
-      - name: ${{ env.ERUN }} Run functional tests with powershell
+      - name: "${{ env.ERUN }} Run functional tests with pwsh"
         id: run-tests
-        shell: powershell
+        shell: pwsh
         env:
           RUNNER_NAME: ${{ runner.name }}
           WORKSPACE: ${{ github.workspace }}
@@ -393,40 +391,40 @@ jobs:
           name: test_results_on_host_Windows_ARL_tests_results
           path: ${{ env.TESTS_RESULTS_DIRECTORY }}
 
-      - name: ${{ env.ECHART }} Show results and check for failures
+      - name: "${{ env.ECHART }} Show results and check for failures"
         if: always()
-        shell: powershell
+        shell: pwsh
         run: |
           $reportDirectory = "${{ env.TESTS_RESULTS_DIRECTORY }}"
           $reportFile = Join-Path $reportDirectory "test_results_on_host_Windows_ARL_tests_results.txt"
+        if (-not (Test-Path $reportFile)) {
+          Write-Error "Report file not found: $reportFile"
+          exit 1
+        }
 
-          if (-not (Test-Path $reportFile)) {
-            Write-Error "Report file not found: $reportFile"
+        $content = Get-Content -Path $reportFile -Raw -Encoding utf8
+
+        $hasFailures = $content -match '\[! FAIL !\]'
+
+        $displayContent = $content -replace '\[pass\]', "$($env:EPASS)"
+        $displayContent = $displayContent -replace '\[! FAIL !\]', "$($env:EFAIL)"
+
+        "## ${{ env.EMEMO }} Test summary for: $(Split-Path $reportFile -Leaf)" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+        $displayContent | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+
+        if ($hasFailures) {
+            Write-Host "--------------------------------------------------"
+            Write-Host "$($env:EFAIL) CRITICAL: Detected failed test cases in the report!"
+            Write-Host "--------------------------------------------------"
             exit 1
-          }
+        } else {
+            Write-Host "$($env:EPASS) All test cases passed according to the report."
+        }
 
-          $content = Get-Content -Path $reportFile -Raw
-
-          $hasFailures = $content -match '\[! FAIL !\]'
-
-          $displayContent = $content -replace '\[pass\]', ':white_check_mark:'
-          $displayContent = $displayContent -replace '\[! FAIL !\]', ':x:'
-
-          "## Test summary for: $(Split-Path $reportFile -Leaf)" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-          $displayContent | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-
-          if ($hasFailures) {
-              Write-Host "--------------------------------------------------"
-              Write-Host "CRITICAL: Detected failed test cases in the report!"
-              Write-Host "--------------------------------------------------"
-              exit 1
-          } else {
-              Write-Host "All test cases passed according to the report."
-          }
       # ======================================================== CLEAUP PART ========================================================
       - name: Clean up
         if: always()
-        shell: powershell
+        shell: pwsh
         run: |
           $PathsToClean = @(
               "${{ env.DLS_BUILD_DIRECTORY }}",
