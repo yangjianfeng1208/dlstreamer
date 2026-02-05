@@ -42,55 +42,55 @@ jobs:
           - runner_labels: [self-hosted, dlstreamer, ARL, windows]
             runner_print_label: ARL
     steps:
-      - name: Check out dlstreamer repository
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # 5.0.0
-        with:
-          persist-credentials: false
-          path: dlstreamer-repo
-          submodules: false
-          fetch-depth: 1
+      # - name: Check out dlstreamer repository
+      #   uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # 5.0.0
+      #   with:
+      #     persist-credentials: false
+      #     path: dlstreamer-repo
+      #     submodules: false
+      #     fetch-depth: 1
 
-      - name: Init submodules
-        run: |
-          cd dlstreamer-repo
-          git submodule update --init thirdparty/spdlog
-          git submodule update --init thirdparty/googletest
+      # - name: Init submodules
+      #   run: |
+      #     cd dlstreamer-repo
+      #     git submodule update --init thirdparty/spdlog
+      #     git submodule update --init thirdparty/googletest
 
-      - name: Copy DLStreamer repo
-        shell: powershell
-        run: |
-          if (Test-Path ${{ env.DLS_REPO_TARGET_DIRECTORY }}) {
-              Remove-Item -Recurse -Force ${{ env.DLS_REPO_TARGET_DIRECTORY }}
-          }
-          New-Item -ItemType Directory -Path ${{ env.DLS_REPO_TARGET_DIRECTORY }} | Out-Null
-          Copy-Item -Path "dlstreamer-repo\*" -Destination ${{ env.DLS_REPO_TARGET_DIRECTORY }} -Recurse -Force
+      # - name: Copy DLStreamer repo
+      #   shell: powershell
+      #   run: |
+      #     if (Test-Path ${{ env.DLS_REPO_TARGET_DIRECTORY }}) {
+      #         Remove-Item -Recurse -Force ${{ env.DLS_REPO_TARGET_DIRECTORY }}
+      #     }
+      #     New-Item -ItemType Directory -Path ${{ env.DLS_REPO_TARGET_DIRECTORY }} | Out-Null
+      #     Copy-Item -Path "dlstreamer-repo\*" -Destination ${{ env.DLS_REPO_TARGET_DIRECTORY }} -Recurse -Force
 
       # ======================================================== BUILDING PART ========================================================
-      - name: 📦 Build DLStreamer DLLs
-        shell: powershell
-        run: |
-          cd ${{ env.DLS_REPO_TARGET_DIRECTORY }}
-          & ./scripts/build_dlstreamer_dlls.ps1 -useInternalProxy
+      # - name: 📦 Build DLStreamer DLLs
+      #   shell: powershell
+      #   run: |
+      #     cd ${{ env.DLS_REPO_TARGET_DIRECTORY }}
+      #     & ./scripts/build_dlstreamer_dlls.ps1 -useInternalProxy
 
-      - name: Copy DLLs
-        shell: powershell
-        run: |
-          $target = "${{ env.DLS_DLL_TARGET_DIRECTORY }}"
-          $source = "${{ env.DLS_BUILD_DIRECTORY }}\intel64\Release\bin"
-          Write-Host "`nContents of source directory ($source):"
-          Get-ChildItem -Path $source -Recurse
-          if (Test-Path $target) {
-              Remove-Item -Recurse -Force $target
-          }
-          # Copy DLLs
-          New-Item -ItemType Directory -Path $target | Out-Null
-          Copy-Item -Path "$source\*" -Destination $target -Recurse -Force
-          # Copy script
-          $scriptSource = "$PWD\dlstreamer-repo\scripts\setup_dls_env.ps1"
-          $scriptDest = Join-Path $target "setup_dls_env.ps1"
-          Copy-Item -Path $scriptSource -Destination $scriptDest -Force
-          Write-Host "`nContents of target directory after copying ($target):"
-          Get-ChildItem -Path $target -Recurse
+      # - name: Copy DLLs
+      #   shell: powershell
+      #   run: |
+      #     $target = "${{ env.DLS_DLL_TARGET_DIRECTORY }}"
+      #     $source = "${{ env.DLS_BUILD_DIRECTORY }}\intel64\Release\bin"
+      #     Write-Host "`nContents of source directory ($source):"
+      #     Get-ChildItem -Path $source -Recurse
+      #     if (Test-Path $target) {
+      #         Remove-Item -Recurse -Force $target
+      #     }
+      #     # Copy DLLs
+      #     New-Item -ItemType Directory -Path $target | Out-Null
+      #     Copy-Item -Path "$source\*" -Destination $target -Recurse -Force
+      #     # Copy script
+      #     $scriptSource = "$PWD\dlstreamer-repo\scripts\setup_dls_env.ps1"
+      #     $scriptDest = Join-Path $target "setup_dls_env.ps1"
+      #     Copy-Item -Path $scriptSource -Destination $scriptDest -Force
+      #     Write-Host "`nContents of target directory after copying ($target):"
+      #     Get-ChildItem -Path $target -Recurse
 
       - name: Print list of DLLs with sizes
         shell: powershell
@@ -136,35 +136,6 @@ jobs:
           Write-Host "Detected Python Path: $actualPath"
           echo "PYTHON_EXE_PATH=$actualPath" >> $env:GITHUB_ENV
 
-      - name: Verify resource directories (Models and Videos)
-        shell: powershell
-        run: |
-          $Resources = @(
-              @{ Name = "Models"; Path = "${{ env.MODELS_PATH }}" },
-              @{ Name = "Video Inputs"; Path = "${{ env.VIDEO_INPUTS_PATH }}" }
-          )
-          $errorCount = 0
-          foreach ($res in $Resources) {
-              Write-Host "Checking $($res.Name) directory: $($res.Path)..."
-
-              if (-not (Test-Path $res.Path)) {
-                  Write-Host "::error:: $($res.Name) directory NOT found at $($res.Path)"
-                  $errorCount++
-                  continue
-              }
-              $hasFiles = Get-ChildItem -Path $res.Path -Recurse -File -ErrorAction SilentlyContinue | Select-Object -First 1
-              if (-not $hasFiles) {
-                  Write-Host "::error:: $($res.Name) directory is EMPTY at $($res.Path)"
-                  $errorCount++
-              } else {
-                  Write-Host "[OK] $($res.Name) directory is valid and has files."
-              }
-          }
-          if ($errorCount -gt 0) {
-              Write-Error "Resource validation failed. $errorCount directories are missing or empty."
-              exit 1
-          }
-
       - name: Check out DLStreamer Windows dependencies
         shell: powershell
         run: |
@@ -176,32 +147,26 @@ jobs:
             "vcpkg"            = $env:VCPKG_DIRECTORY
             "Python Executable"= $env:PYTHON_EXE_PATH
           }
-          "### Dependency Check Results" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-          "| Dependency Name | Status | Expected Path |" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-          "| :--- | :---: | :--- |" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
 
           $errorCount = 0
-          Write-Host "Checking dependencies..."
+          Write-Host "--- Dependency Check ---" -ForegroundColor Cyan
+
           foreach ($name in $deps.Keys) {
             $path = $deps[$name]
-            $exists = Test-Path $path
-            if ($exists) {
-              $status = "Found"
-              Write-Host "[OK] $name found at $path"
+            if (![string]::IsNullOrWhiteSpace($path) -and (Test-Path $path)) {
+              Write-Host "[OK] $name found at: $path" -ForegroundColor Green
             } else {
-              $status = "**Missing**"
-              Write-Host "[Missing] $name NOT found at $path"
+              Write-Host "[Error] $name NOT found at: $path" -ForegroundColor Red
               $errorCount++
             }
-            "| $name | $status | ``$path`` |" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           }
 
           if ($errorCount -gt 0) {
-            Write-Host "----------------------------------------------"
-            Write-Host "Error: $errorCount dependencies are missing!"
-            Write-Error "Workflow failed due to missing dependencies. Please check the Job Summary for details."
-            exit 1
+            Write-Host "----------------------------------------------" -ForegroundColor Red
+            Write-Host "Error: $errorCount dependencies are missing!" -ForegroundColor Red
+            throw "Workflow failed due to $errorCount missing dependencies."
           }
+          Write-Host "All dependencies verified successfully." -ForegroundColor Green
 
       - name: Setup static Windows PATH for following tests
         shell: powershell
@@ -219,17 +184,18 @@ jobs:
             "C:\Windows\system32",
             "C:\Windows"
           )
+
+          Write-Host "Updating GITHUB_PATH with the following locations:" -ForegroundColor Cyan
           foreach ($p in $customPaths) {
             echo "$p" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+            Write-Host "Adding to PATH: $p"
           }
 
           $gstPluginPath = "${env:GSTREAMER_DIRECTORY}\1.0\msvc_x86_64\lib\gstreamer-1.0;${env:DLS_DLL_TARGET_DIRECTORY}"
           echo "GST_PLUGIN_PATH=$gstPluginPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-          "### Configured PATH Locations" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-          foreach ($p in $customPaths) {
-            "- ``$p``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-          }
+          Write-Host "----------------------------------------------"
+          Write-Host "Successfully configured GST_PLUGIN_PATH=$gstPluginPath" -ForegroundColor Green
 
       - name: Validate DLStreamer elements
         shell: powershell
@@ -324,6 +290,35 @@ jobs:
               New-Item -ItemType Directory -Path $internalResults -Force | Out-Null
           }
 
+      - name: Verify resource directories (Models and Videos)
+        shell: powershell
+        run: |
+          $Resources = @(
+              @{ Name = "Models"; Path = "${{ env.MODELS_PATH }}" },
+              @{ Name = "Video Inputs"; Path = "${{ env.VIDEO_INPUTS_PATH }}" }
+          )
+          $errorCount = 0
+          foreach ($res in $Resources) {
+              Write-Host "Checking $($res.Name) directory: $($res.Path)..."
+
+              if (-not (Test-Path $res.Path)) {
+                  Write-Host "::error:: $($res.Name) directory NOT found at $($res.Path)"
+                  $errorCount++
+                  continue
+              }
+              $hasFiles = Get-ChildItem -Path $res.Path -Recurse -File -ErrorAction SilentlyContinue | Select-Object -First 1
+              if (-not $hasFiles) {
+                  Write-Host "::error:: $($res.Name) directory is EMPTY at $($res.Path)"
+                  $errorCount++
+              } else {
+                  Write-Host "[OK] $($res.Name) directory is valid and has files."
+              }
+          }
+          if ($errorCount -gt 0) {
+              Write-Error "Resource validation failed. $errorCount directories are missing or empty."
+              exit 1
+          }
+
       - name: Run functional tests with powershell
         id: run-tests
         shell: powershell
@@ -411,8 +406,7 @@ jobs:
         run: |
           $PathsToClean = @(
               "${{ env.DLS_BUILD_DIRECTORY }}",
-              "${{ env.TESTS_RESULTS_DIRECTORY }}",
-              "${{ env.DLS_DLL_TARGET_DIRECTORY }}"
+              "${{ env.TESTS_RESULTS_DIRECTORY }}"
           )
           $PathsToClean | ForEach-Object {
               if (Test-Path $_) {
@@ -422,3 +416,4 @@ jobs:
           }
 
         # "${{ env.DLS_REPO_TARGET_DIRECTORY }}"
+        # "${{ env.DLS_DLL_TARGET_DIRECTORY }}"
