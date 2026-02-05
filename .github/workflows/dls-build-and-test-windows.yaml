@@ -43,7 +43,7 @@ jobs:
             runner_print_label: ARL
     steps:
       - name: Initialize Emojis
-        shell: pwsh
+        shell: powershell
         run: |
           $emojis = @{
             "EPASS"    = [char]0x2705  # ✅
@@ -79,7 +79,7 @@ jobs:
       #     git submodule update --init thirdparty/googletest
 
       # - name: Copy DLStreamer repo
-      #   shell: pwsh
+      #   shell: powershell
       #   run: |
       #     if (Test-Path ${{ env.DLS_REPO_TARGET_DIRECTORY }}) {
       #         Remove-Item -Recurse -Force ${{ env.DLS_REPO_TARGET_DIRECTORY }}
@@ -89,13 +89,13 @@ jobs:
 
       # ======================================================== BUILDING PART ========================================================
       # - name: "${{ env.EBOX }} Build DLStreamer DLLs"
-      #   shell: pwsh
+      #   shell: powershell
       #   run: |
       #     cd ${{ env.DLS_REPO_TARGET_DIRECTORY }}
       #     & ./scripts/build_dlstreamer_dlls.ps1 -useInternalProxy
 
       # - name: Copy DLLs
-      #   shell: pwsh
+      #   shell: powershell
       #   run: |
       #     $target = "${{ env.DLS_DLL_TARGET_DIRECTORY }}"
       #     $source = "${{ env.DLS_BUILD_DIRECTORY }}\intel64\Release\bin"
@@ -115,7 +115,7 @@ jobs:
       #     Get-ChildItem -Path $target -Recurse
 
       - name: Print list of DLLs with sizes
-        shell: pwsh
+        shell: powershell
         run: |
           $files = Get-ChildItem -Path ${{ env.DLS_DLL_TARGET_DIRECTORY }} -Recurse -Filter *.dll -File
           $table = $files | ForEach-Object {
@@ -152,14 +152,14 @@ jobs:
       - name: Capture Python path
         env:
           RAW_PYTHON_PATH: ${{ steps.cp312.outputs.python-path }}
-        shell: pwsh
+        shell: powershell
         run: |
           $actualPath = "$env:RAW_PYTHON_PATH"
           Write-Host "Detected Python Path: $actualPath"
           echo "PYTHON_EXE_PATH=$actualPath" >> $env:GITHUB_ENV
 
       - name: Check out DLStreamer Windows dependencies
-        shell: pwsh
+        shell: powershell
         run: |
           $deps = @{
             "OpenVINO Runtime" = $env:OPENVINO_RUNTIME_DIRECTORY
@@ -191,7 +191,7 @@ jobs:
           Write-Host "All dependencies verified successfully." -ForegroundColor Green
 
       - name: "${{ env.EGEAR }} Setup static Windows PATH for following tests"
-        shell: pwsh
+        shell: powershell
         run: |
           $customPaths = @(
             "${env:OPENVINO_RUNTIME_DIRECTORY}\bin\intel64\Release",
@@ -220,7 +220,7 @@ jobs:
           Write-Host "Successfully configured GST_PLUGIN_PATH=$gstPluginPath" -ForegroundColor Green
 
       - name: "${{ env.ESEARCH }} Validate DLStreamer elements"
-        shell: pwsh
+        shell: powershell
         run: |
           [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
           Write-Host "Current GST_PLUGIN_PATH: $env:GST_PLUGIN_PATH"
@@ -263,7 +263,7 @@ jobs:
           }
 
       - name: Install Python dependencies in VENV
-        shell: pwsh
+        shell: powershell
         env:
           WORKSPACE: ${{ github.workspace }}
         run: |
@@ -292,7 +292,7 @@ jobs:
           "VENV_PYTHON=$VenvPython" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Create test results directory
-        shell: pwsh
+        shell: powershell
         env:
           RESULTS_DIR_BASE: ${{ env.TESTS_RESULTS_DIRECTORY }}
           WORKSPACE: ${{ github.workspace }}
@@ -313,7 +313,7 @@ jobs:
           }
 
       - name: Verify resource directories (Models and Videos)
-        shell: pwsh
+        shell: powershell
         run: |
           $Resources = @(
               @{ Name = "Models"; Path = "${{ env.MODELS_PATH }}" },
@@ -341,9 +341,9 @@ jobs:
               exit 1
           }
 
-      - name: "${{ env.ERUN }} Run functional tests with pwsh"
+      - name: "${{ env.ERUN }} Run functional tests with powershell"
         id: run-tests
-        shell: pwsh
+        shell: powershell
         env:
           RUNNER_NAME: ${{ runner.name }}
           WORKSPACE: ${{ github.workspace }}
@@ -393,7 +393,7 @@ jobs:
 
       - name: "${{ env.ECHART }} Show results and check for failures"
         if: always()
-        shell: pwsh
+        shell: powershell
         run: |
           $reportDirectory = "${{ env.TESTS_RESULTS_DIRECTORY }}"
           $reportFile = Join-Path $reportDirectory "test_results_on_host_Windows_ARL_tests_results.txt"
@@ -424,7 +424,7 @@ jobs:
       # ======================================================== CLEAUP PART ========================================================
       - name: Clean up
         if: always()
-        shell: pwsh
+        shell: powershell
         run: |
           $PathsToClean = @(
               "${{ env.DLS_BUILD_DIRECTORY }}",
