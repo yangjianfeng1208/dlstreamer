@@ -145,6 +145,8 @@ jobs:
           $summaryLines.Add("")
           $summaryLines.Add("</details>")
           $summaryLines.Add("")
+          $summaryLines.Add("---")
+          $summaryLines.Add("")
 
           $utf8NoBom = New-Object System.Text.UTF8Encoding $false
           [System.IO.File]::AppendAllLines($env:GITHUB_STEP_SUMMARY, $summaryLines, $utf8NoBom)
