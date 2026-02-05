@@ -395,31 +395,33 @@ jobs:
         if: always()
         shell: powershell
         run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
           $reportDirectory = "${{ env.TESTS_RESULTS_DIRECTORY }}"
           $reportFile = Join-Path $reportDirectory "test_results_on_host_Windows_ARL_tests_results.txt"
-        if (-not (Test-Path $reportFile)) {
-          Write-Error "Report file not found: $reportFile"
-          exit 1
-        }
-
-        $content = Get-Content -Path $reportFile -Raw -Encoding utf8
-
-        $hasFailures = $content -match '\[! FAIL !\]'
-
-        $displayContent = $content -replace '\[pass\]', "$($env:EPASS)"
-        $displayContent = $displayContent -replace '\[! FAIL !\]', "$($env:EFAIL)"
-
-        "## ${{ env.EMEMO }} Test summary for: $(Split-Path $reportFile -Leaf)" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-        $displayContent | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-
-        if ($hasFailures) {
-            Write-Host "--------------------------------------------------"
-            Write-Host "$($env:EFAIL) CRITICAL: Detected failed test cases in the report!"
-            Write-Host "--------------------------------------------------"
+          if (-not (Test-Path $reportFile)) {
+            Write-Error "Report file not found: $reportFile"
             exit 1
-        } else {
-            Write-Host "$($env:EPASS) All test cases passed according to the report."
-        }
+          }
+
+          $content = Get-Content -Path $reportFile -Raw -Encoding utf8
+
+          $hasFailures = $content -match '\[! FAIL !\]'
+
+          $displayContent = $content -replace '\[pass\]', "$($env:EPASS)"
+          $displayContent = $displayContent -replace '\[! FAIL !\]', "$($env:EFAIL)"
+
+          "## ${{ env.EMEMO }} Test summary for: $(Split-Path $reportFile -Leaf)" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          $displayContent | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+
+          if ($hasFailures) {
+              Write-Host "--------------------------------------------------"
+              Write-Host "$($env:EFAIL) CRITICAL: Detected failed test cases in the report!"
+              Write-Host "--------------------------------------------------"
+              exit 1
+          } else {
+              Write-Host "$($env:EPASS) All test cases passed according to the report."
+          }
 
       # ======================================================== CLEAUP PART ========================================================
       - name: Clean up
