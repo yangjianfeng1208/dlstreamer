@@ -44,22 +44,28 @@ jobs:
             runner_print_label: ARL
     steps:
       - name: Initialize Emojis
-        shell: powershell
+        shell: pwsh
         run: |
           # 定义映射表
           $emojis = @{
             "EPASS"    = [char]0x2705  # ✅
             "EFAIL"    = [char]0x274C  # ❌
             "EWARN"    = [char]0x26A0  # ⚠️
-            "EROCKET"  = [System.Char]::ConvertFromUtf32(0x1F680) # 🚀
             "EINFO"    = [char]0x2139  # ℹ️
-            "EBOX"     = [System.Char]::ConvertFromUtf32(0x1F4E6) # 📦
+            "EROCKET"  = [System.Char]::ConvertFromUtf32(0x1F680)  # 🚀
+            "EBOX"     = [System.Char]::ConvertFromUtf32(0x1F4E6)  # 📦
+            "EGEAR"    = [System.Char]::ConvertFromUtf32(0x2699)   # ⚙️ (Setup/Settings)
+            "ESEARCH"  = [System.Char]::ConvertFromUtf32(0x1F50D)  # 🔍 (Validate/Inspect)
+            "ERUN"     = [System.Char]::ConvertFromUtf32(0x1F3C3)  # 🏃 (Running/Action)
+            "ECHART"   = [System.Char]::ConvertFromUtf32(0x1F4CA)  # 📊 (Results/Stats)
+            "EMEMO"    = [System.Char]::ConvertFromUtf32(0x1F4DD)  # 📝 (Summary/Notes)
+            "ESTETH"   = [System.Char]::ConvertFromUtf32(0x1FA7A)  # 🩺 (Health Check/Elements)
           }
-
           foreach ($name in $emojis.Keys) {
             $value = $emojis[$name]
-            echo "$name=$value" >> $env:GITHUB_ENV
+            echo "$name=$value" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           }
+
       # - name: Check out dlstreamer repository
       #   uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # 5.0.0
       #   with:
@@ -84,7 +90,7 @@ jobs:
       #     Copy-Item -Path "dlstreamer-repo\*" -Destination ${{ env.DLS_REPO_TARGET_DIRECTORY }} -Recurse -Force
 
       # ======================================================== BUILDING PART ========================================================
-      # - name: 📦 Build DLStreamer DLLs
+      # - name: ${{ env.EBOX }} Build DLStreamer DLLs
       #   shell: powershell
       #   run: |
       #     cd ${{ env.DLS_REPO_TARGET_DIRECTORY }}
@@ -119,7 +125,7 @@ jobs:
           }
           $count = $files.Count
           $summary = @()
-          $summary += "### 📝 List of built DLL files"
+          $summary += "### ${{ env.ENOTE }} List of built DLL files"
           $summary += ""
           $summary += "| File |  Size  |"
           $summary += "|------|--------|"
@@ -186,7 +192,7 @@ jobs:
           }
           Write-Host "All dependencies verified successfully." -ForegroundColor Green
 
-      - name: ⚙️ Setup static Windows PATH for following tests
+      - name: ${{ env.EGEAR }} Setup static Windows PATH for following tests
         shell: powershell
         run: |
           $customPaths = @(
@@ -215,8 +221,8 @@ jobs:
           Write-Host "----------------------------------------------"
           Write-Host "Successfully configured GST_PLUGIN_PATH=$gstPluginPath" -ForegroundColor Green
 
-      - name: 🔍 Validate DLStreamer elements
-        shell: powershell
+      - name: ${{ env.ESEARCH }} Validate DLStreamer elements
+        shell: pwsh
         run: |
           [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
           Write-Host "Current GST_PLUGIN_PATH: $env:GST_PLUGIN_PATH"
@@ -229,7 +235,7 @@ jobs:
             "gvagenai"
           )
 
-          "### 🩺 DLStreamer Elements Availability" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          "### ${{ env.ESEARCH }} DLStreamer Elements Availability" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           "| Element Name | Status | Details |" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           "| :--- | :---: | :--- |" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
 
@@ -242,10 +248,10 @@ jobs:
             $result = $?
 
             if ($result) {
-              $statusEmoji = "✅"
+              $statusEmoji = $env:EPASS
               $detail = "Available"
             } else {
-              $statusEmoji = "❌"
+              $statusEmoji = $env:EFAIL
               $detail = "Missing or Plugin Path Error"
               $allFound = $false
             }
@@ -337,7 +343,7 @@ jobs:
               exit 1
           }
 
-      - name: 🏃 Run functional tests with powershell
+      - name: ${{ env.ERUN }} Run functional tests with powershell
         id: run-tests
         shell: powershell
         env:
@@ -387,7 +393,7 @@ jobs:
           name: test_results_on_host_Windows_ARL_tests_results
           path: ${{ env.TESTS_RESULTS_DIRECTORY }}
 
-      - name: 📊 Show results and check for failures
+      - name: ${{ env.ECHART }} Show results and check for failures
         if: always()
         shell: powershell
         run: |
