@@ -363,7 +363,7 @@ jobs:
               exit 1
           }
 
-      - name: "${{ env.ERUN }} Run functional tests with powershell"
+      - name: "${{ env.EROCKET }} Run functional tests with powershell"
         id: run-tests
         shell: powershell
         env:
