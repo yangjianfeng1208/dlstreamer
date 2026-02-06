@@ -28,7 +28,7 @@ env:
   VIDEO_INPUTS_PATH: 'C:\videos\videos'
   TESTS_RESULTS_DIRECTORY: 'C:\dlstreamer_test_results'
   PYTHON_VERSION: '3.12.7'
-  DLL_EXPECTED_COUNT: 16
+  DLL_EXPECTED_COUNT: 17
 
 jobs:
   DLS_Building_and_Testing:
