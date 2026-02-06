@@ -132,11 +132,13 @@ jobs:
           $summaryLines.Add("## $($env:EBOX) Build Artifacts")
           $summaryLines.Add("")
           if ($isMismatch) {
-              $statusMsg = "**Total DLLs found:** $actualCount ($env.EWARN **Expected: $expectedCount**)"
+              $statusMsg = "**Total DLLs found:** $actualCount ($($env:EWARN) **Expect: $expectedCount**)"
               $summaryLines.Add($statusMsg)
-              Write-Host "::warning title=DLL Count Mismatch::Detected $actualCount DLLs, but expected $expectedCount. Please check if this change is intentional."
+              Write-Host "::warning title=DLL Count Mismatch::Detected $actualCount DLLs, but expected $expectedCount."
           } else {
-              $summaryLines.Add("**Total DLLs found:** $actualCount (Expect: $expectedCount $env.EPASS)")
+              $statusMsg = "**Total DLLs found:** $actualCount (Expect: $expectedCount $($env:EPASS))"
+              $summaryLines.Add($statusMsg)
+              Write-Host "Total DLLs found: $actualCount (Expect: $expectedCount $($env:EPASS))" -ForegroundColor Green
           }
           $summaryLines.Add("")
 
