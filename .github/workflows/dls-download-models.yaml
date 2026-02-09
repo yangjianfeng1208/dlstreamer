@@ -282,7 +282,8 @@ jobs:
       - name: Prepare Windows directories (Rotation)
         shell: powershell
         run: |
-          $base = "${{ env.MODELS_PATH_WINDOWS }}"
+          $rawBase = "${{ env.MODELS_PATH_WINDOWS }}"
+          $base = Join-Path $rawBase "models"
           # 创建根目录（如果不存在）
           if (!(Test-Path $base)) { New-Item -ItemType Directory -Path $base }
 
@@ -317,9 +318,11 @@ jobs:
           $folders = @("intel", "public")
           $remotePrefix = ":sftp,host='$env:REMOTE_HOST',user='$env:REMOTE_USER',key_file='$keyPath':"
 
+          $rawBase = "${{ env.MODELS_PATH_WINDOWS }}"
+          $base = Join-Path $rawBase "models"
           foreach ($folder in $folders) {
               $remotePath = "$($env:REMOTE_BASE)/$folder"
-              $localPath = Join-Path "${{ env.MODELS_PATH_WINDOWS }}" $folder
+              $localPath = Join-Path $base $folder
 
               Write-Host "--- 检查远程目录: $remotePath ---"
               
@@ -342,8 +345,10 @@ jobs:
         shell: powershell
         run: |
           $summary = ""
+          $rawBase = "${{ env.MODELS_PATH_WINDOWS }}"
+          $base = Join-Path $rawBase "models"
           foreach ($type in "public", "intel") {
-              $path = Join-Path "${{ env.MODELS_PATH_WINDOWS }}" $type
+              $path = Join-Path $base $type
               if (Test-Path $path) {
                   $size = (Get-ChildItem $path -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB
                   $formattedSize = "{0:N2}" -f $size
