@@ -312,41 +312,42 @@ jobs:
           SSH_KEY_CONTENT: ${{ secrets.SSH_PRIVATE_KEY }}
           REMOTE_BASE: "/home/edge/dls_validation_models-14-11-2024"
         run: |
-          # 1. 环境初始化
           $ErrorActionPreference = "Continue"
           [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-          # 2. 核心修正：使用 .NET 方法写入私钥，确保没有 BOM 且格式正确
+          # 1. 【关键修正】使用 Ascii 编码写入，并强制处理换行符
+          # 这样生成的私钥文件不会包含任何隐藏的 BOM 字符
           $keyPath = Join-Path $env:TEMP "id_rsa_rclone"
-          [System.IO.File]::WriteAllText($keyPath, ($env:SSH_KEY_CONTENT -replace "`r`n", "`n").Trim())
+          $cleanKey = ($env:SSH_KEY_CONTENT -replace "`r`n", "`n").Trim()
+          Set-Content -Path $keyPath -Value $cleanKey -Encoding Ascii
 
-          # 3. 构造连接字符串
+          # 2. 构造连接字符串 (移除了 use_insecure_cipher，先用标准方式连)
           $folders = @("intel", "public")
-          # 增加 sftp-set-env=false 避免某些服务器的环境变量检查报错
-          $remotePrefix = ":sftp,host='$env:REMOTE_HOST',user='$env:REMOTE_USER',key_file='$keyPath',ask_password=false,use_insecure_cipher=true:"
+          $remotePrefix = ":sftp,host='$env:REMOTE_HOST',user='$env:REMOTE_USER',key_file='$keyPath',ask_password=false:"
           
-          # 4. 路径处理
           $rawBase = "C:\models"
           $base = Join-Path $rawBase "models"
 
-          # 调试：先试着列出家目录，看 SSH 到底通没通
-          Write-Host "--- Debug: Testing Connection to Home Directory ---"
-          rclone lsf "${remotePrefix}/home/$env:REMOTE_USER" --max-depth 1 2>&1 | Select-Object -First 5
+          # 3. 增加一个物理文件检查，确保私钥内容正确写出
+          if (Get-Content $keyPath | Select-Object -First 1 | Select-String "BEGIN") {
+              Write-Host "✅ Private key file format looks valid (found BEGIN header)."
+          } else {
+              Write-Error "❌ Private key file is corrupted or empty!"
+          }
 
           foreach ($folder in $folders) {
-              # 修正：SFTP 绝对路径有时需要在 host 后面加一个额外的斜杠或从根开始
               $remotePath = "$($env:REMOTE_BASE)/$folder"
               $localPath = Join-Path $base $folder
           
               Write-Host "--- Checking Remote: $remotePath ---"
               
-              # 使用 lsf 测试，移除 2>$null 以便看到真实的报错原因
+              # 尝试列出，如果不成功，$check 会为空
               $check = rclone lsf "$remotePrefix$remotePath" --max-depth 1
               
               if ([string]::IsNullOrWhiteSpace($check)) {
-                  Write-Host "❌ Cannot find files in $remotePath. Skipping sync."
-                  # 打印详细错误信息协助排查
-                  rclone lsjson "$remotePrefix$remotePath" --max-depth 1 -vv
+                  Write-Host "❌ Still no key found or directory empty. Detailed Debug:"
+                  # 这里如果还报错，输出信息将非常关键
+                  rclone lsf "$remotePrefix$remotePath" -vv --max-depth 1
                   continue 
               }
           
