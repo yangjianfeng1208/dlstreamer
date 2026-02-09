@@ -312,11 +312,13 @@ jobs:
           SSH_KEY_CONTENT: ${{ secrets.SSH_PRIVATE_KEY }}
           REMOTE_BASE: "/home/jianfeng/workspace/DLS/models/dls_validation_models-14-11-2024"
         run: |
+          $ErrorActionPreference = "Continue"
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
           $keyPath = Join-Path $env:TEMP "id_rsa_rclone"
           $env:SSH_KEY_CONTENT | Out-File -FilePath $keyPath -Encoding ascii
           
           $folders = @("intel", "public")
-          $remotePrefix = ":sftp,host='$env:REMOTE_HOST',user='$env:REMOTE_USER',key_file='$keyPath':"
+          $remotePrefix = ":sftp,host='$env:REMOTE_HOST',user='$env:REMOTE_USER',key_file='$keyPath',ask_password=false:"
 
           $rawBase = "${{ env.MODELS_PATH_WINDOWS }}"
           $base = Join-Path $rawBase "models"
@@ -327,7 +329,8 @@ jobs:
               Write-Host "--- 检查远程目录: $remotePath ---"
               
               # 使用 rclone lsjson 探测远程目录是否存在
-              $check = rclone lsjson "$remotePrefix$remotePath" --max-depth 1 --sftp-ask-password=false 2>$null
+              # $check = rclone lsjson "$remotePrefix$remotePath" --max-depth 1 --sftp-ask-password=false 2>$null
+              $check = rclone lsf "$remotePrefix$remotePath" --max-depth 1 2>$null
               
               if ($null -eq $check -or $check -eq "[]") {
                   Write-Error "❌ 远程目录不存在或为空: $remotePath"
