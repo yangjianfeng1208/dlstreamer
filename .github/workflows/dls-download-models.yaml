@@ -243,6 +243,7 @@ jobs:
   update_windows_hosts:
     if: ${{ !inputs.specific_os || inputs.specific_os == 'all' || inputs.specific_os == 'windows' }}
     name: Update on Windows runners
+    # needs: update_linux_hosts
     runs-on:
       - self-hosted
       - windows
@@ -277,8 +278,27 @@ jobs:
       #         # 清理垃圾
       #         Remove-Item $zipPath
       #     }
-      - name: Setup Rclone
-        uses: rclone/setup-rclone@v1
+      - name: Install Rclone
+        shell: powershell
+        run: |
+          $installDir = "C:\rclone"
+          if (!(Test-Path $installDir)) { New-Item -ItemType Directory -Path $installDir -Force }
+
+          Write-Host "Downloading Rclone..."
+          $zipPath = Join-Path $env:TEMP "rclone.zip"
+          Invoke-WebRequest https://downloads.rclone.org/rclone-current-windows-amd64.zip -OutFile $zipPath
+
+          Write-Host "Extracting..."
+          Expand-Archive $zipPath -DestinationPath $env:TEMP -Force
+
+          $exe = Get-ChildItem -Path $env:TEMP -Filter rclone.exe -Recurse | Select-Object -First 1
+          Copy-Item $exe.FullName -Destination "$installDir\rclone.exe" -Force
+
+          echo "$installDir" >> $env:GITHUB_PATH
+          Write-Host "Rclone is ready at $installDir"
+
+      - name: Verify
+        run: rclone version
 
       - name: Prepare Windows directories (Rotation)
         shell: powershell
