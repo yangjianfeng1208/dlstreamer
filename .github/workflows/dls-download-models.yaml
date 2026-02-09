@@ -248,46 +248,46 @@ jobs:
       - windows
       # 建议保持你的特定标签，如 dlstreamer, ARL
     steps:
-      - name: Ensure Rclone is installed
-        shell: powershell
-        run: |
-          # 1. 检查 rclone 是否已在 PATH 中
-          if (Get-Command rclone.exe -ErrorAction SilentlyContinue) {
-              $currentVersion = rclone --version | Select-Object -First 1
-              Write-Host "✅ Rclone is already installed: $currentVersion"
-          } else {
-              Write-Host "🚀 Rclone not found. Starting installation..."
+      # - name: Ensure Rclone is installed
+      #   shell: powershell
+      #   run: |
+      #     if (Get-Command rclone.exe -ErrorAction SilentlyContinue) {
+      #         $currentVersion = rclone --version | Select-Object -First 1
+      #         Write-Host "✅ Rclone is already installed: $currentVersion"
+      #     } else {
+      #         Write-Host "🚀 Rclone not found. Starting installation..."
               
-              # 设置安装目录（推荐使用非系统目录，或已在 PATH 中的目录）
-              $installDir = "$env:ProgramFiles\rclone"
-              if (!(Test-Path $installDir)) { New-Item -ItemType Directory -Path $installDir }
+      #         # 设置安装目录（推荐使用非系统目录，或已在 PATH 中的目录）
+      #         $installDir = "$env:ProgramFiles\rclone"
+      #         if (!(Test-Path $installDir)) { New-Item -ItemType Directory -Path $installDir }
 
-              # 下载并解压
-              $zipPath = Join-Path $env:TEMP "rclone.zip"
-              Invoke-WebRequest https://downloads.rclone.org/rclone-current-windows-amd64.zip -OutFile $zipPath
-              Expand-Archive $zipPath -DestinationPath $env:TEMP -Force
+      #         # 下载并解压
+      #         $zipPath = Join-Path $env:TEMP "rclone.zip"
+      #         Invoke-WebRequest https://downloads.rclone.org/rclone-current-windows-amd64.zip -OutFile $zipPath
+      #         Expand-Archive $zipPath -DestinationPath $env:TEMP -Force
               
-              # 移动文件
-              $exePath = Get-ChildItem -Path $env:TEMP -Filter rclone.exe -Recurse | Select-Object -First 1
-              Move-Item $exePath.FullName -Destination (Join-Path $installDir "rclone.exe") -Force
+      #         # 移动文件
+      #         $exePath = Get-ChildItem -Path $env:TEMP -Filter rclone.exe -Recurse | Select-Object -First 1
+      #         Move-Item $exePath.FullName -Destination (Join-Path $installDir "rclone.exe") -Force
               
-              # 临时添加到当前 Session 的 PATH，确保后续 Step 能直接用
-              echo "$installDir" >> $env:GITHUB_PATH
-              Write-Host "✅ Rclone installed successfully to $installDir"
+      #         # 临时添加到当前 Session 的 PATH，确保后续 Step 能直接用
+      #         echo "$installDir" >> $env:GITHUB_PATH
+      #         Write-Host "✅ Rclone installed successfully to $installDir"
               
-              # 清理垃圾
-              Remove-Item $zipPath
-          }
+      #         # 清理垃圾
+      #         Remove-Item $zipPath
+      #     }
+      - name: Setup Rclone
+        uses: rclone/setup-rclone@v1
 
       - name: Prepare Windows directories (Rotation)
         shell: powershell
         run: |
           $rawBase = "${{ env.MODELS_PATH_WINDOWS }}"
           $base = Join-Path $rawBase "models"
-          # 创建根目录（如果不存在）
+
           if (!(Test-Path $base)) { New-Item -ItemType Directory -Path $base }
 
-          # 滚动备份逻辑: old -> old_old, current -> old
           foreach ($type in "public", "intel") {
               $dir = Join-Path $base $type
               $old = Join-Path $base "$($type)_old"
@@ -300,7 +300,7 @@ jobs:
               if (Test-Path $dir) {
                   Rename-Item -Path $dir -NewName "$($type)_old"
               }
-              # 创建新的空目录备用
+
               New-Item -ItemType Directory -Path $dir
           }
 
@@ -315,24 +315,20 @@ jobs:
           $ErrorActionPreference = "Continue"
           [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-          # 1. 【关键修正】使用 Ascii 编码写入，并强制处理换行符
-          # 这样生成的私钥文件不会包含任何隐藏的 BOM 字符
           $keyPath = Join-Path $env:TEMP "id_rsa_rclone"
           $cleanKey = ($env:SSH_KEY_CONTENT -replace "`r`n", "`n").Trim()
           Set-Content -Path $keyPath -Value $cleanKey -Encoding Ascii
 
-          # 2. 构造连接字符串 (移除了 use_insecure_cipher，先用标准方式连)
           $folders = @("intel", "public")
           $remotePrefix = ":sftp,host='$env:REMOTE_HOST',user='$env:REMOTE_USER',key_file='$keyPath',ask_password=false:"
           
           $rawBase = "C:\models"
           $base = Join-Path $rawBase "models"
 
-          # 3. 增加一个物理文件检查，确保私钥内容正确写出
           if (Get-Content $keyPath | Select-Object -First 1 | Select-String "BEGIN") {
-              Write-Host "✅ Private key file format looks valid (found BEGIN header)."
+              Write-Host "[OK] Private key file format looks valid (found BEGIN header)."
           } else {
-              Write-Error "❌ Private key file is corrupted or empty!"
+              Write-Error "[ERROR] Private key file is corrupted or empty!"
           }
 
           foreach ($folder in $folders) {
@@ -340,18 +336,16 @@ jobs:
               $localPath = Join-Path $base $folder
           
               Write-Host "--- Checking Remote: $remotePath ---"
-              
-              # 尝试列出，如果不成功，$check 会为空
+
               $check = rclone lsf "$remotePrefix$remotePath" --max-depth 1
               
               if ([string]::IsNullOrWhiteSpace($check)) {
-                  Write-Host "❌ Still no key found or directory empty. Detailed Debug:"
-                  # 这里如果还报错，输出信息将非常关键
+                  Write-Host "[ERROR] Still no key found or directory empty. Detailed Debug:"
                   rclone lsf "$remotePrefix$remotePath" -vv --max-depth 1
                   continue 
               }
           
-              Write-Host "🚀 Syncing $folder to $localPath"
+              Write-Host "Syncing $folder to $localPath"
               rclone copy "$remotePrefix$remotePath" "$localPath" `
                 --progress --multi-thread-streams 4 --transfers 4 --sftp-ask-password=false
           }
@@ -370,12 +364,12 @@ jobs:
                   $size = (Get-ChildItem $path -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB
                   $formattedSize = "{0:N2}" -f $size
                   if ($size -ge ${{ env.MODELS_DIR_MIN_SIZE_MB }}) {
-                      $status = "✅ $type models downloaded: $formattedSize MB"
+                      $status = "[OK] $type models downloaded: $formattedSize MB"
                   } else {
-                      $status = "❌ $type models directory too small: $formattedSize MB"
+                      $status = "[ERROR] $type models directory too small: $formattedSize MB"
                   }
               } else {
-                  $status = "❌ $type directory not found!"
+                  $status = "[ERROR] $type directory not found!"
               }
               Write-Host $status
               $summary += "$status`n"
