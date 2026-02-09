@@ -307,10 +307,10 @@ jobs:
       - name: Sync Models via Rclone (Windows)
         shell: powershell
         env:
-          REMOTE_USER: root
+          REMOTE_USER: edge
           REMOTE_HOST: 10.67.100.168
           SSH_KEY_CONTENT: ${{ secrets.SSH_PRIVATE_KEY }}
-          REMOTE_BASE: "/home/jianfeng/workspace/DLS/models/dls_validation_models-14-11-2024"
+          REMOTE_BASE: "/home/edge/dls_validation_models-14-11-2024"
         run: |
           $ErrorActionPreference = "Continue"
           [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
