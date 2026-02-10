@@ -36,6 +36,10 @@ on:
         description: "List of runner(s) labels (example: DLS-TGL-02,DLS-ARL-01)"
         required: false
         type: string
+      runner_labels_windows:
+        description: "List of Windows runner(s) labels (example: DLS-ARL-10)"
+        required: false
+        type: string
 
 permissions: {}
 env:
@@ -45,27 +49,38 @@ env:
   PYTHON_VERSION: '3.12.7'
   WINDOWS_VENV_PATH: 'C:\\dlstreamer-venv'
   DEFAULT_LABELS: "DLS-ARL-01,DLS-ARL-02,DLS-ARL-03,DLS-TGL-01,DLS-TGL-02,DLS-TGL-03,DLS-TGL-04,DLS-TGL-05"
+  DEFAULT_LABELS_WINDOWS: "DLS-ARL-WIN-01,DLS-ARL-WIN-02"
 
 jobs:
   setup-runners:
-    if: ${{ !inputs.specific_os || inputs.specific_os == 'all' || inputs.specific_os == 'linux' }}
     name: Set runners to execute update
     runs-on: ubuntu-latest
     outputs:
-      runners: ${{ steps.set-labels.outputs.runners }}
+      linux_runners: ${{ steps.set-labels.outputs.linux_runners }}
+      windows_runners: ${{ steps.set-labels.outputs.windows_runners }}
     steps:
       - name: Set runners labels
         id: set-labels
         env:
-          user_labels: ${{ inputs.runner_labels }}
+          RAW_LINUX_LABELS: ${{ inputs.runner_labels }}
+          RAW_WIN_LABELS: ${{ inputs.runner_labels_windows }}
+          DEF_LINUX_LABELS: ${{ env.DEFAULT_LABELS }}
+          DEF_WIN_LABELS: ${{ env.DEFAULT_LABELS_WINDOWS }}
         run: |
-          LABELS=$user_labels
-          if [ -z "$LABELS" ]; then
-            LABELS="${{ env.DEFAULT_LABELS }}" # Use default configuration if user didn't set any input labels
+          LINUX_LABELS="$RAW_LINUX_LABELS"
+          if [ -z "$LINUX_LABELS" ]; then
+            LINUX_LABELS="$DEF_LINUX_LABELS"
           fi
-          LABELS_ARRAY=$(echo "$LABELS" | jq -Rc 'split(",")')
-          echo "Runners lables array: $LABELS_ARRAY"
-          echo "runners=$LABELS_ARRAY" >> $GITHUB_OUTPUT
+          LINUX_ARRAY=$(echo "$LINUX_LABELS" | jq -Rc 'split(",")')
+          echo "linux_runners=$LINUX_ARRAY" >> $GITHUB_OUTPUT
+
+          WIN_LABELS="$RAW_WIN_LABELS"
+          if [ -z "$WIN_LABELS" ]; then
+            WIN_LABELS="$DEF_WIN_LABELS"
+          fi
+          WIN_ARRAY=$(echo "$WIN_LABELS" | jq -Rc 'split(",")')
+          echo "windows_runners=$WIN_ARRAY" >> $GITHUB_OUTPUT
+
   update_linux_hosts:
     if: ${{ !inputs.specific_os || inputs.specific_os == 'all' || inputs.specific_os == 'linux' }}
     name: Update on Linux runners
@@ -80,7 +95,7 @@ jobs:
       - ${{ matrix.runner }}
     steps:
       - name: Get script
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #5.0.0
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # 5.0.0
         with:
           persist-credentials: false
           path: dlstreamer-repo
@@ -243,11 +258,15 @@ jobs:
   update_windows_hosts:
     if: ${{ !inputs.specific_os || inputs.specific_os == 'all' || inputs.specific_os == 'windows' }}
     name: Update on Windows runners
-    # needs: update_linux_hosts
+    needs: update_linux_hosts
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: ${{ fromJson(needs.setup-runners.outputs.windows_runners) }}
     runs-on:
-      - self-hosted
-      - windows
-      # 建议保持你的特定标签，如 dlstreamer, ARL
+      - ${{ matrix.runner }}
     steps:
       - name: Initialize Emojis
         shell: powershell
@@ -283,7 +302,7 @@ jobs:
           echo "$installDir" >> $env:GITHUB_PATH
           Write-Host "Rclone is ready at $installDir"
 
-      - name: Verify
+      - name: Verify rclone installation
         run: rclone version
 
       - name: Prepare Windows directories (Rotation)
@@ -313,10 +332,10 @@ jobs:
       - name: Sync Models via Rclone (Windows)
         shell: powershell
         env:
-          REMOTE_USER: edge
-          REMOTE_HOST: 10.67.100.168
-          SSH_KEY_CONTENT: ${{ secrets.SSH_PRIVATE_KEY }}
-          REMOTE_BASE: "/home/edge/dls_validation_models-14-11-2024"
+          REMOTE_USER: ${{ secrets.DLS_MODEL_SYNC_SSH_USER }}
+          REMOTE_HOST: ${{ secrets.DLS_MODEL_SYNC_SSH_HOST }}
+          SSH_KEY_CONTENT: ${{ secrets.DLS_MODEL_SYNC_SSH_PRIVATE_KEY }}
+          REMOTE_BASE: "/home/user/models/models"
         run: |
           $ErrorActionPreference = "Continue"
           [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
