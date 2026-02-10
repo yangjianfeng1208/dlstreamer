@@ -258,8 +258,8 @@ jobs:
   update_windows_hosts:
     if: ${{ !inputs.specific_os || inputs.specific_os == 'all' || inputs.specific_os == 'windows' }}
     name: Update on Windows runners
-    # needs: update_linux_hosts
     needs: setup-runners
+    # needs: [setup-runners, update_linux_hosts]
     permissions:
       contents: read
     strategy:
@@ -336,7 +336,7 @@ jobs:
           REMOTE_USER: ${{ secrets.DLS_MODEL_SYNC_SSH_USER }}
           REMOTE_HOST: ${{ secrets.DLS_MODEL_SYNC_SSH_HOST }}
           SSH_KEY_CONTENT: ${{ secrets.DLS_MODEL_SYNC_SSH_PRIVATE_KEY }}
-          REMOTE_BASE: "/home/user/models/models"
+          REMOTE_BASE: "/home/edge/dls_validation_models-14-11-2024"
         run: |
           $ErrorActionPreference = "Continue"
           [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
