@@ -15,15 +15,6 @@ on:
           - public
           - omz
           - specific_model
-      specific_os:
-        description: 'Which OS to use for downloading? (all/linux/windows)'
-        required: false
-        default: 'all'
-        type: choice
-        options:
-          - all
-          - linux
-          - windows
       specific_model_name:
         description: 'What SPECIFIC model do you want to download?'
         required: false
@@ -46,10 +37,8 @@ env:
   MODELS_PATH: "$HOME/models"
   MODELS_PATH_WINDOWS: 'C:\\models'
   MODELS_DIR_MIN_SIZE_MB: 10
-  PYTHON_VERSION: '3.12.7'
-  WINDOWS_VENV_PATH: 'C:\\dlstreamer-venv'
   DEFAULT_LABELS: "DLS-ARL-01,DLS-ARL-02,DLS-ARL-03,DLS-TGL-01,DLS-TGL-02,DLS-TGL-03,DLS-TGL-04,DLS-TGL-05"
-  DEFAULT_LABELS_WINDOWS: "DLS-ARL-WIN-01,DLS-ARL-WIN-02"
+  DEFAULT_LABELS_WINDOWS: "DLS-ARL-10"
 
 jobs:
   setup-runners:
@@ -82,7 +71,6 @@ jobs:
           echo "windows_runners=$WIN_ARRAY" >> $GITHUB_OUTPUT
 
   update_linux_hosts:
-    if: ${{ !inputs.specific_os || inputs.specific_os == 'all' || inputs.specific_os == 'linux' }}
     name: Update on Linux runners
     needs: setup-runners
     permissions:
@@ -90,7 +78,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: ${{ fromJson(needs.setup-runners.outputs.runners) }}
+        runner: ${{ fromJson(needs.setup-runners.outputs.linux_runners) }}
     runs-on:
       - ${{ matrix.runner }}
     steps:
@@ -256,10 +244,8 @@ jobs:
           rm -rf $HOME/.virtualenvs
 
   update_windows_hosts:
-    if: ${{ !inputs.specific_os || inputs.specific_os == 'all' || inputs.specific_os == 'windows' }}
     name: Update on Windows runners
-    needs: setup-runners
-    # needs: [setup-runners, update_linux_hosts]
+    needs: [setup-runners]
     permissions:
       contents: read
     strategy:
@@ -346,37 +332,38 @@ jobs:
           Set-Content -Path $keyPath -Value $cleanKey -Encoding Ascii
 
           $folders = @("intel", "public")
-          $remotePrefix = ":sftp,host='$env:REMOTE_HOST',user='$env:REMOTE_USER',key_file='$keyPath',ask_password=false:"
 
-          $rawBase = "C:\models"
-          $base = Join-Path $rawBase "models"
+          $fixedKeyPath = $keyPath.Replace('\', '/')
+          $remotePrefix = ":sftp,host='$env:REMOTE_HOST',user='$env:REMOTE_USER',key_file='$fixedKeyPath',ask_password=false:"
+          $base = Join-Path "C:\models" "models"
 
           if (Get-Content $keyPath | Select-Object -First 1 | Select-String "BEGIN") {
-              Write-Host "[OK] Private key file format looks valid (found BEGIN header)."
+              Write-Host "[OK] Private key format looks valid."
           } else {
-              Write-Error "[ERROR] Private key file is corrupted or empty!"
-          }
-
-          Write-Host "--- Checking Remote: $remotePath ---"
-          $check = rclone lsf "$remotePrefix$remotePath" --max-depth 1
-          if ([string]::IsNullOrWhiteSpace($check)) {
-              Write-Host "[ERROR] Still no key found or directory empty. Detailed Debug:"
-              rclone lsf "$remotePrefix$remotePath" -vv --max-depth 1
-              continue
+              Write-Error "[ERROR] Private key file is corrupted!"
+              exit 1
           }
 
           foreach ($folder in $folders) {
               $remotePath = "$($env:REMOTE_BASE)/$folder"
               $localPath = Join-Path $base $folder
 
-              Write-Host "--- Checking Remote: $remotePath ---"
+              Write-Host "`n--- Checking Remote: $remotePath ---"
 
+              $testPath = rclone lsf "$remotePrefix$remotePath" --max-depth 1 2>$null
+
+              if ($null -eq $testPath -or [string]::IsNullOrWhiteSpace($testPath)) {
+                  Write-Host "[SKIP] Remote directory '$remotePath' not found or empty. Skipping." -ForegroundColor Yellow
+                  continue 
+              }
+
+              Write-Host "Syncing from $remotePath to $localPath"
               rclone copy "$remotePrefix$remotePath" "$localPath" `
-                --multi-thread-streams 4 `
-                --transfers 4 `
-                --sftp-ask-password=false `
-                --verbose `
-                --stats-log-level NOTICE
+                  --multi-thread-streams 4 `
+                  --transfers 4 `
+                  --sftp-ask-password=false `
+                  --verbose `
+                  --stats-log-level NOTICE
           }
 
           if (Test-Path $keyPath) { Remove-Item $keyPath }
