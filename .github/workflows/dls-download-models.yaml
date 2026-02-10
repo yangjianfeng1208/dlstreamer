@@ -255,6 +255,7 @@ jobs:
           $emojis = @{
             "EPASS"    = [char]0x2705  # ✅
             "EFAIL"    = [char]0x274C  # ❌
+            "EWARN"    = [char]0x26A0  # ⚠️
           }
           $lines = New-Object System.Collections.Generic.List[string]
           foreach ($name in $emojis.Keys) {
@@ -376,7 +377,7 @@ jobs:
                       $status = "$type models directory too small: $formattedSize MB $($env:EFAIL)"
                   }
               } else {
-                  $status = "$type directory not found! $($env:EFAIL)"
+                  $status = "$type directory not found! $($env:EWARN)"
               }
 
               Write-Host $status
