@@ -343,17 +343,12 @@ jobs:
 
               Write-Host "--- Checking Remote: $remotePath ---"
 
-              $check = rclone lsf "$remotePrefix$remotePath" --max-depth 1
-
-              if ([string]::IsNullOrWhiteSpace($check)) {
-                  Write-Host "[ERROR] Still no key found or directory empty. Detailed Debug:"
-                  rclone lsf "$remotePrefix$remotePath" -vv --max-depth 1
-                  continue
-              }
-
-              Write-Host "Syncing $folder to $localPath"
               rclone copy "$remotePrefix$remotePath" "$localPath" `
-                --progress --multi-thread-streams 4 --transfers 4 --sftp-ask-password=false
+                --multi-thread-streams 4 `
+                --transfers 4 `
+                --sftp-ask-password=false `
+                --verbose `
+                --stats-log-level NOTICE
           }
 
           if (Test-Path $keyPath) { Remove-Item $keyPath }
