@@ -337,6 +337,14 @@ jobs:
               Write-Error "[ERROR] Private key file is corrupted or empty!"
           }
 
+          Write-Host "--- Checking Remote: $remotePath ---"
+          $check = rclone lsf "$remotePrefix$remotePath" --max-depth 1
+          if ([string]::IsNullOrWhiteSpace($check)) {
+              Write-Host "[ERROR] Still no key found or directory empty. Detailed Debug:"
+              rclone lsf "$remotePrefix$remotePath" -vv --max-depth 1
+              continue
+          }
+
           foreach ($folder in $folders) {
               $remotePath = "$($env:REMOTE_BASE)/$folder"
               $localPath = Join-Path $base $folder
