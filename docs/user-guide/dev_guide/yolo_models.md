@@ -31,7 +31,7 @@ The directory created by the exporter contains all files required to use the mod
 
 ## Other YOLO Models
 
-> **NOTE:** To obtain ready-to-use versions of the models described below, we recommend using the [`download_public_models.sh`](https://github.com/open-edge-platform/dlstreamer/blob/main/samples/download_public_models.sh) script. See [Download Public Models](https://github.com/open-edge-platform/dlstreamer/blob/main/docs/source/dev_guide/download_public_models.md) for details.
+> **NOTE:** To obtain ready-to-use versions of the models described below, we recommend using the [`download_public_models.sh`](https://github.com/open-edge-platform/dlstreamer/blob/main/samples/download_public_models.sh) script. See [Download Public Models](./download_public_models.md) for details.
 
 ### YOLOv7
 
