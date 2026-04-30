@@ -31,70 +31,70 @@ env:
   DLL_EXPECTED_COUNT: 19
 
 jobs:
-  setup:
-    name: "Setup Windows build configuration"
-    runs-on: dlstreamer
-    outputs:
-      should_run: ${{ steps.skip-check.outputs.should_run }}
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
-    steps:
-      - name: Check out dlstreamer repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #6.0.2
-        with:
-          persist-credentials: false
-          fetch-depth: 0
+  # setup:
+  #   name: "Setup Windows build configuration"
+  #   runs-on: dlstreamer
+  #   outputs:
+  #     should_run: ${{ steps.skip-check.outputs.should_run }}
+  #     matrix: ${{ steps.set-matrix.outputs.matrix }}
+  #   steps:
+  #     - name: Check out dlstreamer repository
+  #       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #6.0.2
+  #       with:
+  #         persist-credentials: false
+  #         fetch-depth: 0
 
-      # - name: Check if should skip CI
-      #   id: skip-check
-      #   uses: ./.github/actions/common/check-skip-ci
-      #   with:
-      #     job_name: "Build and Test on Windows"
-      #     working_directory: "."
+  #     # - name: Check if should skip CI
+  #     #   id: skip-check
+  #     #   uses: ./.github/actions/common/check-skip-ci
+  #     #   with:
+  #     #     job_name: "Build and Test on Windows"
+  #     #     working_directory: "."
 
-      - name: Set matrix configuration
-        id: set-matrix
-        # env:
-        #   SHOULD_RUN: ${{ steps.skip-check.outputs.should_run }}
-        shell: bash
-        run: |
-          if [[ "${SHOULD_RUN}" == "false" ]]; then
-            MATRIX=$(jq -n '{
-              "include": [
-                {
-                  "runner_labels": ["dlstreamer"],
-                  "runner_print_label": "SKIP"
-                }
-              ]
-            }' | jq -c .)
-          else
-            MATRIX=$(jq -n '{
-              "include": [
-                {
-                  "runner_labels": ["self-hosted", "dlstreamer", "ARL", "windows"],
-                  "runner_print_label": "ARL"
-                }
-              ]
-            }' | jq -c .)
-          fi
-          echo "Generated matrix: $MATRIX"
-          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+  #     - name: Set matrix configuration
+  #       id: set-matrix
+  #       # env:
+  #       #   SHOULD_RUN: ${{ steps.skip-check.outputs.should_run }}
+  #       shell: bash
+  #       run: |
+  #         if [[ "${SHOULD_RUN}" == "false" ]]; then
+  #           MATRIX=$(jq -n '{
+  #             "include": [
+  #               {
+  #                 "runner_labels": ["dlstreamer"],
+  #                 "runner_print_label": "SKIP"
+  #               }
+  #             ]
+  #           }' | jq -c .)
+  #         else
+  #           MATRIX=$(jq -n '{
+  #             "include": [
+  #               {
+  #                 "runner_labels": ["self-hosted", "dlstreamer", "ARL", "windows"],
+  #                 "runner_print_label": "ARL"
+  #               }
+  #             ]
+  #           }' | jq -c .)
+  #         fi
+  #         echo "Generated matrix: $MATRIX"
+  #         echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
 
   build:
-    name: "[${{ matrix.runner_print_label }}] Build and Test Windows DLLs"
-    runs-on: ${{ matrix.runner_labels }}
-    needs: setup
+    name: "Build and Test Windows DLLs"
+    runs-on: [ARL, dlstreamer, windows]
+    # needs: setup
     permissions:
       contents: read
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
+      # matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
     steps:
-      - name: Skip or execute based on configuration
-        if: matrix.runner_print_label == 'SKIP'
-        run: |
-          echo "## ✅ Windows Build and Test Skipped" >> $GITHUB_STEP_SUMMARY
-          echo "**Reason:** Changes only in excluded files" >> $GITHUB_STEP_SUMMARY
-          exit 0
+      # - name: Skip or execute based on configuration
+      #   if: matrix.runner_print_label == 'SKIP'
+      #   run: |
+      #     echo "## ✅ Windows Build and Test Skipped" >> $GITHUB_STEP_SUMMARY
+      #     echo "**Reason:** Changes only in excluded files" >> $GITHUB_STEP_SUMMARY
+      #     exit 0
 
       - name: Initialize Emojis
         if: needs.setup.outputs.should_run == 'true'
