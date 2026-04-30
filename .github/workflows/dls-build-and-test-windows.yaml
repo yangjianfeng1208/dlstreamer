@@ -53,25 +53,25 @@ jobs:
 
       - name: Set should_run to always true
         id: set-should-run
-        shell: bash
+        shell: powershell
         run: |
-          echo "should_run=true" >> $GITHUB_OUTPUT
+          echo "should_run=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Set matrix configuration
         id: set-matrix
-        shell: bash
+        shell: powershell
         run: |
           # Skip check is disabled, always run the workflow
-          MATRIX=$(jq -n '{
-            "include": [
-              {
-                "runner_labels": ["self-hosted", "dlstreamer", "ARL", "windows"],
-                "runner_print_label": "ARL"
+          $matrix = @{
+            include = @(
+              @{
+                runner_labels = @("self-hosted", "dlstreamer", "ARL", "windows")
+                runner_print_label = "ARL"
               }
-            ]
-          }' | jq -c .)
-          echo "Generated matrix: $MATRIX"
-          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+            )
+          } | ConvertTo-Json -Compress -Depth 10
+          Write-Host "Generated matrix: $matrix"
+          echo "matrix=$matrix" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
   build:
     name: "Build and Test Windows DLLs"
