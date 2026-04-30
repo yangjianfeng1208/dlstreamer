@@ -33,7 +33,7 @@ env:
 jobs:
   setup:
     name: "Setup Windows build configuration"
-    runs-on: dlstreamer
+    runs-on: [self-hosted, dlstreamer, ARL, windows]
     outputs:
       should_run: ${{ steps.set-should-run.outputs.should_run }}
       matrix: ${{ steps.set-matrix.outputs.matrix }}
