@@ -1,10 +1,10 @@
 name: "[DLS] PR workflow"
 run-name: "[DLS] PR  workflow (by @${{ github.actor }} via ${{ github.event_name }})"
 on:
-  push:
-    branches:
-      - 'main'
-  pull_request:
+  # push:
+  #   branches:
+  #     - 'main'
+  # pull_request:
   workflow_call:
     inputs:
       test-repo-branch:
