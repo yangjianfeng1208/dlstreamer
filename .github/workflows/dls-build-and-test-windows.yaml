@@ -44,17 +44,17 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
-      - name: Check if should skip CI
-        id: skip-check
-        uses: ./.github/actions/common/check-skip-ci
-        with:
-          job_name: "Build and Test on Windows"
-          working_directory: "."
+      # - name: Check if should skip CI
+      #   id: skip-check
+      #   uses: ./.github/actions/common/check-skip-ci
+      #   with:
+      #     job_name: "Build and Test on Windows"
+      #     working_directory: "."
 
       - name: Set matrix configuration
         id: set-matrix
-        env:
-          SHOULD_RUN: ${{ steps.skip-check.outputs.should_run }}
+        # env:
+        #   SHOULD_RUN: ${{ steps.skip-check.outputs.should_run }}
         shell: bash
         run: |
           if [[ "${SHOULD_RUN}" == "false" ]]; then
